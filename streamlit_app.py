@@ -11,7 +11,7 @@ from streamlit_authenticator import Hasher
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING ---
+# --- 2. CSS STYLING (MODERN & PREMIUM) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -49,7 +49,7 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="2fa_tracker_debug")
+cookie_manager = stx.CookieManager(key="2fa_tracker_final")
 
 # --- 5. AUTHENTICATOR ---
 users_config = {}
@@ -95,56 +95,44 @@ elif authentication_status == None:
 elif authentication_status == True:
     
     # --- CHECK 2FA ---
+    # Ελέγχουμε αν υπάρχει το cookie που λέει ότι έχεις περάσει το 2FA
     cookie_2fa = cookie_manager.get("2fa_verified_user")
     is_verified = (cookie_2fa == username)
     
+    # Αν ΔΕΝ έχεις περάσει το 2FA, στο ζητάει
     if not is_verified:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown(f"<h3 style='text-align: center;'>🔐 2FA Verification</h3>", unsafe_allow_html=True)
-            
-            # --- DEBUG BLOCK (ΘΑ ΤΟ ΣΒΗΣΟΥΜΕ ΜΕΤΑ) ---
-            totp = pyotp.TOTP(ADMIN_2FA_KEY)
-            current_code = totp.now()
-            st.warning(f"🛠️ DEBUG MODE: Ο σωστός κωδικός τώρα είναι: **{current_code}**")
-            st.caption("Γράψε αυτόν τον κωδικό ακριβώς από κάτω.")
-            # ----------------------------------------
+            st.caption("Άνοιξε το Google Authenticator και γράψε τον κωδικό.")
             
             otp_code = st.text_input("6-digit Code", max_chars=6)
             
-            col_a, col_b = st.columns(2)
-            
-            if col_a.button("VERIFY 🚀", type="primary"):
-                # valid_window=2 -> Δέχεται κωδικούς +/- 60 δευτερόλεπτα
+            if st.button("VERIFY 🚀", type="primary"):
+                totp = pyotp.TOTP(ADMIN_2FA_KEY)
+                # valid_window=2 -> Δίνει περιθώριο +/- 60 δευτερολέπτων για να μην αποτυγχάνει εύκολα
                 if totp.verify(otp_code, valid_window=2):
                     import datetime
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
+                    # Αποθηκεύουμε ότι πέρασες τον έλεγχο
                     cookie_manager.set("2fa_verified_user", username, expires_at=expires)
                     st.success("Correct!")
                     time.sleep(0.5)
                     st.rerun()
                 else:
-                    st.error(f"❌ Λάθος! Εσύ έγραψες: {otp_code}, Το σύστημα θέλει: {totp.now()}")
+                    st.error("❌ Λάθος κωδικός!")
 
-            # ΚΟΥΜΠΙ ΑΝΑΓΚΗΣ
-            if col_b.button("🆘 Skip 2FA (Emergency)"):
-                st.warning("Skipping 2FA for debugging...")
-                import datetime
-                expires = datetime.datetime.now() + datetime.timedelta(days=30)
-                cookie_manager.set("2fa_verified_user", username, expires_at=expires)
-                time.sleep(0.5)
-                st.rerun()
-            
             if st.button("Logout"):
                 authenticator.logout('Logout', 'main')
 
-    # --- APP ---
+    # --- MAIN APP (Εμφανίζεται μόνο αν περάσεις το 2FA) ---
     else:
         c1, c2 = st.columns([3, 1])
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
             if st.button("Έξοδος"):
+                # Διαγράφουμε το 2FA cookie κατά την έξοδο
                 cookie_manager.delete("2fa_verified_user")
                 authenticator.logout('Έξοδος', 'main')
 
