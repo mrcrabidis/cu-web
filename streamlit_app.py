@@ -15,10 +15,10 @@ try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
     SYSTEM_USERS = st.secrets["users"]
 except:
-    st.error("⚠️ ΣΦΑΛΜΑ: Λείπουν τα Secrets!")
+    st.error("⚠️ Setup Error: Secrets missing")
     st.stop()
 
-# --- 3. COOKIE MANAGER (Lightweight) ---
+# --- 3. COOKIE MANAGER ---
 cookie_manager = stx.CookieManager(key="auth_manager")
 
 # --- 4. CSS ---
@@ -31,8 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- API OPTIMIZATION (CACHE SESSION) ---
-# Αυτό κρατάει ανοιχτή τη σύνδεση με Vodafone για να μην την ανοίγει κάθε φορά (Πολύ πιο γρήγορο)
+# --- API (CACHED SESSION ΓΙΑ ΤΑΧΥΤΗΤΑ) ---
 @st.cache_resource
 def get_session():
     s = requests.Session()
@@ -58,27 +57,35 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- SECURITY LOGIC (FAST VERSION) ---
+# --- SECURITY LOGIC (SMART WAIT) ---
 # ==========================================
 
+# Initialization
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
 if "system_username" not in st.session_state: st.session_state.system_username = ""
+if "checked_cookies" not in st.session_state: st.session_state.checked_cookies = False
 
-# 1. Γρήγορος έλεγχος Cookie
-# Χρησιμοποιούμε get_all() γιατί είναι συνήθως πιο γρήγορο στο cache του browser
-cookies = cookie_manager.get_all()
-cookie_user = cookies.get("cu_user_fast")
-
-# 2. Αν βρούμε cookie, κάνουμε login ΧΩΡΙΣ καθυστέρηση
-if not st.session_state.authenticated and cookie_user:
-    if cookie_user in SYSTEM_USERS:
+# 1. Αν είμαστε ήδη μέσα, προχωράμε
+if not st.session_state.authenticated:
+    
+    # 2. Προσπάθεια ανάγνωσης cookie
+    cookie_user = cookie_manager.get("cu_user_stable")
+    
+    # 3. Αν βρήκαμε cookie -> Login
+    if cookie_user and cookie_user in SYSTEM_USERS:
         st.session_state.authenticated = True
         st.session_state.system_username = cookie_user
         st.rerun()
+    
+    # 4. Αν ΔΕΝ βρήκαμε cookie και ΔΕΝ έχουμε ξανα-ελέγξει (Refresh scenario)
+    elif not st.session_state.checked_cookies:
+        with st.spinner("🔄 Checking Session..."):
+            time.sleep(1) # Δίνουμε 1 δευτερόλεπτο στον browser να ξυπνήσει
+            st.session_state.checked_cookies = True # Σημαία ότι ελέγξαμε
+            st.rerun() # Ξανατρέχουμε για να δούμε αν ήρθε το cookie
 
 def login_page():
     st.markdown("<h2 style='text-align: center;'>🔐 Secure Access</h2>", unsafe_allow_html=True)
-    
     if "user_verified" not in st.session_state: st.session_state.user_verified = False
 
     if not st.session_state.user_verified:
@@ -91,7 +98,7 @@ def login_page():
                     st.session_state.user_verified = True
                     st.session_state.system_username = u
                     st.rerun()
-                else: st.error("Λάθος στοιχεία")
+                else: st.error("Wrong Credentials")
     else:
         with st.container(border=True):
             st.info(f"User: **{st.session_state.system_username}**")
@@ -100,11 +107,12 @@ def login_page():
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
                 if totp.verify(otp_code):
                     st.session_state.authenticated = True
-                    # Γράφουμε το cookie και συνεχίζουμε ΑΜΕΣΩΣ
+                    # Γράφουμε το Cookie (30 μέρες)
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
-                    cookie_manager.set("cu_user_fast", st.session_state.system_username, expires_at=expires)
+                    cookie_manager.set("cu_user_stable", st.session_state.system_username, expires_at=expires)
+                    time.sleep(0.5)
                     st.rerun()
-                else: st.error("Λάθος κωδικός")
+                else: st.error("Wrong Code")
             if st.button("Back"): st.session_state.user_verified = False; st.rerun()
 
 if not st.session_state.authenticated:
@@ -124,7 +132,7 @@ with col1: st.title("🚀 CU Booster")
 with col2:
     st.caption(f"👤 {st.session_state.system_username}")
     if st.button("Exit"):
-        cookie_manager.delete("cu_user_fast")
+        cookie_manager.delete("cu_user_stable")
         st.session_state.clear()
         st.rerun()
 
@@ -133,39 +141,38 @@ if st.session_state.step == 1:
         phone_input = st.text_input("Κινητό", placeholder="694...", max_chars=10)
         if st.button("SMS 📩", use_container_width=True, type="primary"):
             if len(phone_input)==10:
-                with st.spinner("Wait..."):
+                with st.spinner("Connecting..."):
                     if api_send_sms(phone_input):
                         st.session_state.phone = phone_input
                         st.session_state.step = 2
                         st.rerun()
-                    else: st.error("Σφάλμα")
-            else: st.warning("10 ψηφία")
+                    else: st.error("Error")
+            else: st.warning("10 Digits")
 
 elif st.session_state.step == 2:
     with st.container(border=True):
-        st.info(f"OTP στο {st.session_state.phone}")
+        st.info(f"OTP: {st.session_state.phone}")
         otp_input = st.text_input("OTP Code")
         c1, c2 = st.columns(2)
-        if c1.button("Πίσω", use_container_width=True): st.session_state.step=1; st.rerun()
+        if c1.button("Back", use_container_width=True): st.session_state.step=1; st.rerun()
         if c2.button("Enter", use_container_width=True, type="primary"):
             with st.spinner("Verifying..."):
                 token = api_verify_otp(st.session_state.phone, otp_input)
                 if token: st.session_state.token=token; st.session_state.step=3; st.rerun()
-                else: st.error("Λάθος OTP")
+                else: st.error("Wrong OTP")
 
 elif st.session_state.step == 3:
     st.success(f"Connected: {st.session_state.phone}")
     with st.container(border=True):
-        pkg = st.radio("Πακέτο:", ["🥤 Shake (Data)", "🗣️ Voice"], horizontal=True)
+        pkg = st.radio("Package:", ["🥤 Shake (Data)", "🗣️ Voice"], horizontal=True)
         offer = "BDLCUShakeBon7" if "Shake" in pkg else "BDLBonVoice3"
-        times = st.slider("Ποσότητα:", 1, 50, 20)
-        if st.button(f"ΕΝΕΡΓΟΠΟΙΗΣΗ ({times}x) 🔥", use_container_width=True, type="primary"):
+        times = st.slider("Qty:", 1, 50, 20)
+        if st.button(f"ACTIVATE ({times}x) 🔥", use_container_width=True, type="primary"):
             bar = st.progress(0); succ = 0
             for i in range(times):
                 if api_activate(st.session_state.token, st.session_state.phone, offer) in [200, 201, 403]: succ+=1
                 bar.progress((i+1)/times)
-                # Αφαίρεσα το time.sleep(0.3) ή το μείωσα πολύ για ταχύτητα
-                time.sleep(0.1) 
-            st.success(f"Τέλος: {succ}/{times}")
-    if st.button("Νέο Νούμερο", use_container_width=True):
+                time.sleep(0.05) # Πολύ μικρή καθυστέρηση για να μην κολλάει το API
+            st.success(f"Done: {succ}/{times}")
+    if st.button("New Number", use_container_width=True):
         st.session_state.step=1; st.session_state.phone=""; st.session_state.token=None; st.rerun()
