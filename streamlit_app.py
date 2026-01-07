@@ -12,91 +12,85 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (VODAFONE CLEAN UI FIX) ---
+# --- 2. CSS STYLING (PERMANENT DARK MODE) ---
 st.markdown("""
 <style>
     /* 1. Εισαγωγή Font */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-    /* 2. Γενικό Φόντο Εφαρμογής */
+    /* 2. Γενικό Φόντο Εφαρμογής (Σκούρο) */
     .stApp {
-        background-color: #f4f4f4 !important; /* Ανοιχτό γκρι φόντο */
-        font-family: 'Roboto', sans-serif !important;
+        background-color: #0e1117 !important; /* Πολύ σκούρο γκρι/μαύρο */
+        font-family: 'Inter', sans-serif !important;
     }
 
-    /* 3. ΕΠΙΘΕΤΙΚΗ ΔΙΟΡΘΩΣΗ ΧΡΩΜΑΤΩΝ ΚΕΙΜΕΝΟΥ (ΟΛΑ ΣΚΟΥΡΑ) */
-    /* Αυτό αναγκάζει τίτλους, κείμενα, labels να γίνουν σκούρα γκρι */
-    h1, h2, h3, h4, h5, h6, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: #333333 !important; 
+    /* 3. Χρώμα Κειμένου (Λευκό για να φαίνεται στο μαύρο) */
+    h1, h2, h3, h4, h5, h6, p, span, div[data-testid="stMarkdownContainer"] p {
+        color: #e6e6e6 !important; /* Απαλό λευκό */
     }
     
-    /* Εξαίρεση: Τα κείμενα μέσα στα κουμπιά πρέπει να μείνουν άσπρα */
-    button p, button span {
-        color: #ffffff !important;
-    }
+    /* Εξαίρεση: Κείμενο μέσα στα κουμπιά */
+    button p { color: #ffffff !important; }
 
-    /* 4. Στυλ για τις Κάρτες (Login, 2FA, Forms) */
-    div[data-testid="stForm"], div[data-testid="stExpander"], div.block-container {
-        background-color: #ffffff !important; /* Καθαρό λευκό */
+    /* 4. Κάρτες (Login, Forms) - Σκούρο Γκρι */
+    div[data-testid="stForm"], div[data-testid="stExpander"] {
+        background-color: #262730 !important; /* Σκούρο γκρι για τις κάρτες */
+        border: 1px solid #3b3c3d !important;
         border-radius: 15px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; /* Απαλή σκιά */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; /* Σκιά */
         padding: 30px !important;
-        border: 1px solid #e0e0e0 !important;
     }
 
-    /* 5. Inputs (Πεδία κειμένου) */
+    /* 5. Inputs (Κουτάκια κειμένου) - Μαύρο φόντο, Λευκά γράμματα */
     div[data-testid="stTextInput"] input {
-        background-color: #f9f9f9 !important;
-        color: #000000 !important; /* Μαύρα γράμματα */
-        border: 1px solid #cccccc !important;
+        background-color: #161b22 !important; /* Σχεδόν μαύρο */
+        color: #ffffff !important; /* Λευκά γράμματα */
+        border: 1px solid #454749 !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
-    
-    /* Όταν κάνεις κλικ στο input */
+
+    /* Όταν κάνεις κλικ στο κουτί */
     div[data-testid="stTextInput"] input:focus {
-        border-color: #e60000 !important; /* Κόκκινο Vodafone */
-        box-shadow: 0 0 0 2px rgba(230, 0, 0, 0.2) !important;
+        border-color: #e60000 !important; /* Κόκκινο περίγραμμα */
+        box-shadow: 0 0 0 1px #e60000 !important;
     }
-
-    /* 6. Labels πάνω από τα inputs */
+    
+    /* Τα Labels (π.χ. "Username") πάνω από τα κουτιά */
     div[data-testid="stTextInput"] label {
-        font-weight: 600 !important;
+        color: #b0b0b0 !important; /* Γκρι ανοιχτό */
         font-size: 14px !important;
-        color: #555555 !important;
-        margin-bottom: 5px !important;
     }
 
-    /* 7. Κουμπιά (Vodafone Red) */
+    /* 6. Κουμπιά (Vodafone Red - Glowing) */
     div[data-testid="stButton"] button {
-        background-color: #e60000 !important;
+        background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important;
         color: #ffffff !important;
         border: none !important;
         border-radius: 8px !important;
         font-weight: bold !important;
         padding: 12px 24px !important;
+        box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4) !important; /* Κόκκινη λάμψη */
         transition: all 0.3s ease;
-        box-shadow: 0 4px 10px rgba(230, 0, 0, 0.2) !important;
     }
 
     div[data-testid="stButton"] button:hover {
-        background-color: #cc0000 !important;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(230, 0, 0, 0.3) !important;
+        transform: scale(1.02);
+        box-shadow: 0 6px 16px rgba(230, 0, 0, 0.6) !important;
     }
 
-    /* 8. Alert Boxes (Info/Success/Error) */
+    /* 7. Alerts */
     div[data-testid="stAlert"] {
-        padding: 15px !important;
-        border-radius: 10px !important;
+        background-color: #262730 !important;
+        color: #e6e6e6 !important;
+        border: 1px solid #454749 !important;
     }
-    
-    /* Απόκρυψη Streamlit στοιχείων */
+
+    /* Απόκρυψη */
     #MainMenu, footer, header {visibility: hidden;}
-    
+
 </style>
 """, unsafe_allow_html=True)
-
 # --- 3. SECRETS ---
 try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
