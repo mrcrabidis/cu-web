@@ -12,7 +12,7 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. ELITE DARK CSS (MOBILE OPTIMIZED) ---
+# --- 2. ELITE DARK CSS (Fixed Positioning) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -23,6 +23,13 @@ st.markdown("""
         background-image: radial-gradient(circle at 50% 0%, #1c202b, #0e1117 80%);
         font-family: 'Inter', sans-serif !important;
     }
+    
+    /* --- FIX: ΚΑΤΕΒΑΣΜΑ ΠΕΡΙΕΧΟΜΕΝΟΥ --- */
+    /* Αυτό κατεβάζει όλο το app πιο κάτω για να μην κολλάει στο ταβάνι */
+    .block-container {
+        padding-top: 5rem !important;
+        padding-bottom: 5rem !important;
+    }
 
     /* Hide Elements */
     #MainMenu, footer, header {visibility: hidden;}
@@ -30,15 +37,13 @@ st.markdown("""
     /* Text Colors */
     h1, h2, h3, p, label, span { color: #e0e0e0 !important; }
     
-    /* MOBILE RESPONSIVE CARDS */
+    /* CARDS */
     div[data-testid="stForm"], div[data-testid="stExpander"], div.block-container {
         background-color: #161920 !important;
         border: 1px solid #2d3342 !important;
         border-radius: 16px !important;
-        padding: 30px 20px !important; /* Λίγο μικρότερο padding για κινητά */
+        padding: 30px 25px !important;
         box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
-        
-        /* Κλειδί για κινητά: */
         max-width: 500px !important; 
         width: 100% !important;
         margin: 0 auto !important;
@@ -51,7 +56,7 @@ st.markdown("""
         border: 1px solid #333 !important;
         border-radius: 10px !important;
         padding: 12px 15px !important;
-        font-size: 16px !important; /* 16px για να μην κάνει zoom το iPhone */
+        font-size: 16px !important;
     }
     div[data-testid="stTextInput"] input:focus {
         border-color: #ff3b30 !important;
@@ -69,18 +74,13 @@ st.markdown("""
         font-size: 15px !important;
         transition: all 0.2s ease;
         box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2) !important;
-        white-space: nowrap !important; /* ΑΠΑΓΟΡΕΥΕΙ ΤΗΝ ΑΛΛΑΓΗ ΓΡΑΜΜΗΣ */
+        white-space: nowrap !important; /* Να μην σπάει η λέξη */
     }
     div[data-testid="stButton"] button:hover {
         background-color: #d63026 !important;
         transform: translateY(-2px);
     }
     div[data-testid="stButton"] button p { color: white !important; }
-
-    /* Secondary Button (Logout/Back) - Πιο διακριτικό */
-    div[data-testid="stButton"] button:active {
-        background-color: #b02a22 !important;
-    }
 
     /* Support Link */
     .stLinkButton a {
@@ -117,7 +117,8 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="mobile_mgr_v2")
+# Βάζουμε key για να μην κάνει reload το component χωρίς λόγο
+cookie_manager = stx.CookieManager(key="session_fix_final")
 
 # --- 5. AUTHENTICATOR ---
 users_config = {}
@@ -126,7 +127,7 @@ for username, password in RAW_USERS.items():
     users_config[username] = {"name": username, "password": hashed_pass, "email": f"{username}@cu.gr"}
 
 credentials = {"usernames": users_config}
-cookie_config = {"expiry_days": 30, "key": "cu_auth_mobile", "name": "cu_ck_mob"}
+cookie_config = {"expiry_days": 30, "key": "cu_auth_main", "name": "cu_ck_main"}
 
 authenticator = stauth.Authenticate(credentials, cookie_config['name'], cookie_config['key'], cookie_config['expiry_days'])
 
@@ -154,7 +155,11 @@ def api_activate(token, phone, offer):
 # ==========================================
 
 login_placeholder = st.empty()
+
+# --- ΕΛΕΓΧΟΣ PRISTINE SESSION ---
+# Πρώτα διαβάζουμε το cookie
 cookie_2fa = cookie_manager.get("cu_free_pass")
+# Μετά διαβάζουμε το session state
 is_verified_session = st.session_state.get("session_verified", False)
 
 # --- LOGIN FORM ---
@@ -171,6 +176,7 @@ if authentication_status:
     login_placeholder.empty()
 
     # 2. CHECK 2FA
+    # Αν το cookie είναι σωστό Ή αν μόλις κάναμε verify σε αυτό το session
     is_verified_cookie = (cookie_2fa == username)
     FINAL_ACCESS = is_verified_cookie or is_verified_session
 
@@ -185,9 +191,15 @@ if authentication_status:
             if st.button("VERIFY DEVICE 🚀", type="primary", use_container_width=True):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
                 if totp.verify(otp_code, valid_window=4):
+                    # 1. ΚΑΡΦΩΝΟΥΜΕ ΤΟ SESSION (Ώστε να μπει ΑΜΕΣΩΣ)
                     st.session_state.session_verified = True
+                    
+                    # 2. ΓΡΑΦΟΥΜΕ ΤΟ COOKIE (Για την επόμενη φορά)
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_free_pass", username, expires_at=expires)
+                    
+                    # 3. Rerun για να φορτώσει το Dashboard
+                    time.sleep(0.5)
                     st.rerun()
                 else:
                     st.error("Invalid Code")
@@ -200,22 +212,21 @@ if authentication_status:
                  st.rerun()
 
     else:
-        # --- MAIN APP (MOBILE FRIENDLY) ---
+        # --- MAIN APP (DASHBOARD) ---
         
-        # Header Layout - Δίνουμε περισσότερο χώρο στο κουμπί εξόδου για να μην σπάει
-        # [3, 1.5] σημαίνει ότι το κουμπί έχει αρκετό χώρο.
+        # Header Layout
         c1, c2 = st.columns([3, 1.5]) 
         with c1: 
             st.markdown(f"<h2 style='margin:0; padding:0;'>🚀 CU Booster</h2>", unsafe_allow_html=True)
             st.caption(f"User: {name}")
         with c2: 
-            # Κουμπί εξόδου με εικονίδιο για οικονομία χώρου και use_container_width
             if st.button("🚪 Logout", use_container_width=True):
+                # Καθαρισμός Cookies & Session
                 try: cookie_manager.delete("cu_free_pass", key="del_free")
                 except: pass
                 st.session_state.session_verified = False
                 st.session_state["authentication_status"] = None
-                try: cookie_manager.delete("cu_ck_mob", key="del_main")
+                try: cookie_manager.delete("cu_ck_main", key="del_main")
                 except: pass
                 st.rerun()
         
