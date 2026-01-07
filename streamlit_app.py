@@ -12,41 +12,43 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. ELITE DARK CSS (Fixed Positioning) ---
+# --- 2. ELITE DARK CSS (FORCE LAYOUT FIX) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Background */
+    /* 1. Background */
     .stApp {
         background-color: #0e1117 !important;
         background-image: radial-gradient(circle at 50% 0%, #1c202b, #0e1117 80%);
         font-family: 'Inter', sans-serif !important;
     }
     
-    /* --- FIX: ΚΑΤΕΒΑΣΜΑ ΠΕΡΙΕΧΟΜΕΝΟΥ --- */
-    /* Αυτό κατεβάζει όλο το app πιο κάτω για να μην κολλάει στο ταβάνι */
-    .block-container {
-        padding-top: 5rem !important;
+    /* 2. FORCE PADDING - ΣΠΡΩΧΝΟΥΜΕ ΤΑ ΠΑΝΤΑ ΚΑΤΩ */
+    div[data-testid="stAppViewContainer"] > .main > .block-container {
+        padding-top: 6rem !important; /* 100px κενό από πάνω */
         padding-bottom: 5rem !important;
+        max-width: 550px !important; /* Λίγο πιο φαρδύ για να αναπνέει */
     }
 
     /* Hide Elements */
     #MainMenu, footer, header {visibility: hidden;}
     
-    /* Text Colors */
+    /* Colors */
     h1, h2, h3, p, label, span { color: #e0e0e0 !important; }
     
-    /* CARDS */
-    div[data-testid="stForm"], div[data-testid="stExpander"], div.block-container {
+    /* 3. CARDS DESIGN */
+    div[data-testid="stForm"], div[data-testid="stExpander"], div.element-container {
         background-color: #161920 !important;
         border: 1px solid #2d3342 !important;
         border-radius: 16px !important;
-        padding: 30px 25px !important;
+        padding: 10px !important;
+    }
+    
+    /* Η κυρίως κάρτα να έχει σκιά */
+    div[data-testid="stForm"] {
         box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
-        max-width: 500px !important; 
-        width: 100% !important;
-        margin: 0 auto !important;
+        padding: 30px !important;
     }
 
     /* Inputs */
@@ -74,7 +76,7 @@ st.markdown("""
         font-size: 15px !important;
         transition: all 0.2s ease;
         box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2) !important;
-        white-space: nowrap !important; /* Να μην σπάει η λέξη */
+        white-space: nowrap !important; 
     }
     div[data-testid="stButton"] button:hover {
         background-color: #d63026 !important;
@@ -82,7 +84,7 @@ st.markdown("""
     }
     div[data-testid="stButton"] button p { color: white !important; }
 
-    /* Support Link */
+    /* Link Button */
     .stLinkButton a {
         color: #888 !important;
         border: 1px solid #333 !important;
@@ -117,8 +119,8 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-# Βάζουμε key για να μην κάνει reload το component χωρίς λόγο
-cookie_manager = stx.CookieManager(key="session_fix_final")
+# Χρησιμοποιούμε key για σταθερότητα
+cookie_manager = stx.CookieManager(key="fix_session_final")
 
 # --- 5. AUTHENTICATOR ---
 users_config = {}
@@ -156,13 +158,13 @@ def api_activate(token, phone, offer):
 
 login_placeholder = st.empty()
 
-# --- ΕΛΕΓΧΟΣ PRISTINE SESSION ---
-# Πρώτα διαβάζουμε το cookie
+# --- 1. SESSION CHECK (DUAL LAYER PROTECTION) ---
+# Layer 1: Cookie (Μακροχρόνια μνήμη)
 cookie_2fa = cookie_manager.get("cu_free_pass")
-# Μετά διαβάζουμε το session state
+# Layer 2: Session State (Άμεση μνήμη RAM)
 is_verified_session = st.session_state.get("session_verified", False)
 
-# --- LOGIN FORM ---
+# --- 2. LOGIN FORM ---
 with login_placeholder.container():
     if not st.session_state.get("authentication_status"):
         name, authentication_status, username = authenticator.login('Member Access', 'main')
@@ -171,17 +173,16 @@ with login_placeholder.container():
         username = st.session_state["username"]
         authentication_status = True
 
-# Λογική μετά το Login
+# --- 3. MAIN LOGIC ---
 if authentication_status:
     login_placeholder.empty()
 
-    # 2. CHECK 2FA
-    # Αν το cookie είναι σωστό Ή αν μόλις κάναμε verify σε αυτό το session
+    # Ελέγχουμε αν είναι verified είτε από Cookie είτε από Session
     is_verified_cookie = (cookie_2fa == username)
     FINAL_ACCESS = is_verified_cookie or is_verified_session
 
     if not FINAL_ACCESS:
-        # --- 2FA SCREEN ---
+        # --- SHOW 2FA SCREEN ---
         with st.container(border=True):
             st.markdown("<h3 style='text-align: center; color: #fff;'>🔐 Verification</h3>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #666; font-size: 13px;'>Enter 2FA Code</p>", unsafe_allow_html=True)
@@ -191,15 +192,16 @@ if authentication_status:
             if st.button("VERIFY DEVICE 🚀", type="primary", use_container_width=True):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
                 if totp.verify(otp_code, valid_window=4):
-                    # 1. ΚΑΡΦΩΝΟΥΜΕ ΤΟ SESSION (Ώστε να μπει ΑΜΕΣΩΣ)
+                    # 1. Γράφουμε στη RAM (Άμεση πρόσβαση)
                     st.session_state.session_verified = True
                     
-                    # 2. ΓΡΑΦΟΥΜΕ ΤΟ COOKIE (Για την επόμενη φορά)
+                    # 2. Γράφουμε στο Cookie (Μελλοντική πρόσβαση)
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_free_pass", username, expires_at=expires)
                     
-                    # 3. Rerun για να φορτώσει το Dashboard
-                    time.sleep(0.5)
+                    st.success("Verified!")
+                    # 3. Μικρή καθυστέρηση για να προλάβει το cookie
+                    time.sleep(1)
                     st.rerun()
                 else:
                     st.error("Invalid Code")
@@ -212,7 +214,7 @@ if authentication_status:
                  st.rerun()
 
     else:
-        # --- MAIN APP (DASHBOARD) ---
+        # --- SHOW DASHBOARD (LOGGED IN) ---
         
         # Header Layout
         c1, c2 = st.columns([3, 1.5]) 
@@ -221,7 +223,7 @@ if authentication_status:
             st.caption(f"User: {name}")
         with c2: 
             if st.button("🚪 Logout", use_container_width=True):
-                # Καθαρισμός Cookies & Session
+                # Καθαρισμός όλων
                 try: cookie_manager.delete("cu_free_pass", key="del_free")
                 except: pass
                 st.session_state.session_verified = False
