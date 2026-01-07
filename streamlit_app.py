@@ -10,77 +10,107 @@ from streamlit_authenticator import Hasher
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (DARK TEXT FIX) ---
+# --- 2. CSS STYLING (MODERN & PREMIUM LOOK) ---
 st.markdown("""
 <style>
-    /* 1. Ρύθμιση Φόντου σε όλη την εφαρμογή */
+    /* Εισαγωγή μοντέρνας γραμματοσειράς (προαιρετικά, αλλιώς χρησιμοποιεί του συστήματος) */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    /* 1. Γενικό Φόντο & Τυπογραφία */
     .stApp {
-        background-color: #f0f2f6 !important;
+        /* Απαλό ντεγκραντέ για πιο premium αίσθηση αντί για φλατ γκρι */
+        background: linear-gradient(to bottom, #ffffff, #f4f7f9) !important;
+        font-family: 'Inter', sans-serif !important;
     }
 
-    /* 2. ΑΝΑΓΚΑΣΤΙΚΗ ΑΛΛΑΓΗ ΧΡΩΜΑΤΟΣ ΚΕΙΜΕΝΟΥ ΣΕ ΜΑΥΡΟ */
-    /* Αυτό διορθώνει το πρόβλημα που δεν διαβάζονται οι τίτλοι */
-    h1, h2, h3, h4, h5, h6, p, span, label, div[data-testid="stMarkdownContainer"] p {
-        color: #0d0d0d !important;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    h1, h2, h3, p, label, span {
+        color: #2c3e50 !important; /* Πιο "ζεστό" σκούρο γκρι αντί για απόλυτο μαύρο */
+    }
+    
+    h1 {
+        font-weight: 800 !important;
+        letter-spacing: -0.5px;
     }
 
-    /* 3. Κάρτα Login & Περιεχομένου */
-    div[data-testid="stForm"], div[data-testid="stExpander"] {
-        background-color: #ffffff !important; /* Καθαρό λευκό */
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border: 1px solid #dcdcdc;
-    }
-
-    /* 4. Διόρθωση των Inputs (Κουτάκια που γράφεις) */
-    /* Να είναι λευκά/γκρι με μαύρα γράμματα */
-    div[data-testid="stTextInput"] input {
+    /* 2. Μοντέρνες Κάρτες (Login Form, Expanders, Containers) */
+    div[data-testid="stForm"], div[data-testid="stExpander"], div[data-testid="stVerticalBlockBorderWrapper"] > div {
         background-color: #ffffff !important;
-        color: #000000 !important;
-        border: 1px solid #cccccc;
-        border-radius: 8px;
-        padding: 10px;
+        border-radius: 24px !important; /* Πολύ στρογγυλεμένες γωνίες */
+        /* Απαλή, βαθιά σκιά για εφέ "αιώρησης" */
+        box-shadow: 0 12px 40px rgba(0,0,0,0.08) !important;
+        border: none !important; /* Αφαίρεση του σκληρού περιγράμματος */
+        padding: 40px !important;
+        transition: transform 0.3s ease;
     }
-    /* Το Label πάνω από το input (π.χ. "Username") */
-    div[data-testid="stTextInput"] label {
-        color: #333333 !important;
-        font-weight: bold;
+    
+    /* Ελαφρύ "σήκωμα" της κάρτας όταν περνάει το ποντίκι */
+    div[data-testid="stForm"]:hover {
+        transform: translateY(-5px);
     }
 
-    /* 5. Κουμπιά (Vodafone Red Style) */
+    /* 3. Μοντέρνα Inputs (Κουτάκια κειμένου) */
+    div[data-testid="stTextInput"] input {
+        background-color: #f8f9fa !important; /* Πολύ απαλό γκρι για να ξεχωρίζει από την κάρτα */
+        color: #333 !important;
+        border: 2px solid transparent !important; /* Κρυφό περίγραμμα αρχικά */
+        border-radius: 12px !important;
+        padding: 14px !important;
+        font-size: 16px !important;
+        transition: all 0.3s ease;
+    }
+
+    /* Εφέ όταν κάνεις κλικ μέσα στο κουτί (Focus) */
+    div[data-testid="stTextInput"] input:focus {
+        background-color: #ffffff !important;
+        border-color: #e60000 !important; /* Το κόκκινο της CU */
+        /* Κόκκινη λάμψη γύρω γύρω */
+        box-shadow: 0 0 0 4px rgba(230, 0, 0, 0.1) !important;
+    }
+    
+    /* Τα labels πάνω από τα inputs */
+    div[data-testid="stTextInput"] label {
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+        color: #555 !important;
+    }
+
+    /* 4. Premium Κουμπιά (Vodafone Red Gradient) */
     div[data-testid="stButton"] button {
-        background-color: #e60000 !important;
-        color: #ffffff !important;
-        border: none;
-        padding: 10px 20px;
-        font-weight: bold;
-        border-radius: 8px;
+        /* Ντεγκραντέ κόκκινο για βάθος */
+        background: linear-gradient(135deg, #e60000 0%, #c20000 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 14px 24px !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
         width: 100%;
         font-size: 16px;
-        transition: 0.3s;
-    }
-    div[data-testid="stButton"] button:hover {
-        background-color: #b30000 !important;
-        color: #ffffff !important;
-        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-    }
-    /* Κειμενάκι μέσα στο κουμπί να είναι σίγουρα άσπρο */
-    div[data-testid="stButton"] button p {
-        color: #ffffff !important;
+        letter-spacing: 0.5px;
+        /* Κόκκινη σκιά από κάτω */
+        box-shadow: 0 8px 20px rgba(230, 0, 0, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
-    /* 6. Απόκρυψη περιττών στοιχείων */
-    #MainMenu {visibility: hidden;} 
-    footer {visibility: hidden;} 
-    header {visibility: hidden;}
-    
-    /* 7. Διόρθωση Alert/Info Boxes */
-    div[data-testid="stAlert"] {
-        background-color: #ebf5ff;
-        color: #004085;
+    /* Εφέ όταν περνάει το ποντίκι πάνω από το κουμπί */
+    div[data-testid="stButton"] button:hover {
+        background: linear-gradient(135deg, #ff1a1a 0%, #d90000 100%) !important;
+        transform: translateY(-3px) scale(1.02); /* Ελαφρύ μεγάλωμα και σήκωμα */
+        box-shadow: 0 12px 25px rgba(230, 0, 0, 0.4) !important;
     }
+    /* Το κείμενο μέσα στο κουμπί */
+    div[data-testid="stButton"] button p { color: #ffffff !important; }
+
+    /* 5. Διόρθωση των Info/Success Boxes */
+    div[data-testid="stAlert"] {
+        border-radius: 12px !important;
+        border-left: 6px solid #e60000 !important; /* Κόκκινη μπάρα αριστερά */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+    div[alerttype="success"] { border-left-color: #28a745 !important; }
+
+    /* 6. Απόκρυψη */
+    #MainMenu, footer, header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
