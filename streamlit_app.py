@@ -11,7 +11,7 @@ from streamlit_authenticator import Hasher
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (MODERN & PREMIUM) ---
+# --- 2. CSS STYLING ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -40,7 +40,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- 3. SECRETS & SETUP ---
+# --- 3. SECRETS ---
 try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
     RAW_USERS = st.secrets["users"]
@@ -48,10 +48,10 @@ except:
     st.error("⚠️ Error: Secrets missing!")
     st.stop()
 
-# --- 4. COOKIE MANAGER (Για να θυμάται το 2FA) ---
-cookie_manager = stx.CookieManager(key="2fa_tracker")
+# --- 4. COOKIE MANAGER ---
+cookie_manager = stx.CookieManager(key="2fa_tracker_debug")
 
-# --- 5. AUTHENTICATOR SETUP ---
+# --- 5. AUTHENTICATOR ---
 users_config = {}
 for username, password in RAW_USERS.items():
     hashed_pass = Hasher([str(password)]).generate()[0]
@@ -85,7 +85,6 @@ def api_activate(token, phone, offer):
 # --- MAIN FLOW ---
 # ==========================================
 
-# 1. Βήμα Α: Username / Password (μέσω Authenticator)
 name, authentication_status, username = authenticator.login('main')
 
 if authentication_status == False:
@@ -94,48 +93,61 @@ elif authentication_status == None:
     st.info('Παρακαλώ συνδεθείτε.')
 
 elif authentication_status == True:
-    # --- 2. Βήμα Β: Έλεγχος αν έχουμε ήδη περάσει το 2FA ---
     
-    # Διαβάζουμε το cookie "2fa_verified"
+    # --- CHECK 2FA ---
     cookie_2fa = cookie_manager.get("2fa_verified_user")
-    
-    # Αν το cookie υπάρχει ΚΑΙ ταιριάζει με τον τωρινό χρήστη -> Περάσαμε!
     is_verified = (cookie_2fa == username)
     
-    # Αν ΔΕΝ είμαστε verified, δείχνουμε τη φόρμα
     if not is_verified:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown(f"<h3 style='text-align: center;'>🔐 2FA Verification</h3>", unsafe_allow_html=True)
+            
+            # --- DEBUG BLOCK (ΘΑ ΤΟ ΣΒΗΣΟΥΜΕ ΜΕΤΑ) ---
+            totp = pyotp.TOTP(ADMIN_2FA_KEY)
+            current_code = totp.now()
+            st.warning(f"🛠️ DEBUG MODE: Ο σωστός κωδικός τώρα είναι: **{current_code}**")
+            st.caption("Γράψε αυτόν τον κωδικό ακριβώς από κάτω.")
+            # ----------------------------------------
+            
             otp_code = st.text_input("6-digit Code", max_chars=6)
             
-            if st.button("VERIFY 🚀", type="primary"):
-                totp = pyotp.TOTP(ADMIN_2FA_KEY)
-                if totp.verify(otp_code, valid_window=1):
-                    # ΕΠΙΤΥΧΙΑ! Γράφουμε το Cookie για να το θυμάται
+            col_a, col_b = st.columns(2)
+            
+            if col_a.button("VERIFY 🚀", type="primary"):
+                # valid_window=2 -> Δέχεται κωδικούς +/- 60 δευτερόλεπτα
+                if totp.verify(otp_code, valid_window=2):
                     import datetime
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("2fa_verified_user", username, expires_at=expires)
+                    st.success("Correct!")
+                    time.sleep(0.5)
                     st.rerun()
                 else:
-                    st.error("❌ Λάθος κωδικός!")
+                    st.error(f"❌ Λάθος! Εσύ έγραψες: {otp_code}, Το σύστημα θέλει: {totp.now()}")
+
+            # ΚΟΥΜΠΙ ΑΝΑΓΚΗΣ
+            if col_b.button("🆘 Skip 2FA (Emergency)"):
+                st.warning("Skipping 2FA for debugging...")
+                import datetime
+                expires = datetime.datetime.now() + datetime.timedelta(days=30)
+                cookie_manager.set("2fa_verified_user", username, expires_at=expires)
+                time.sleep(0.5)
+                st.rerun()
             
             if st.button("Logout"):
                 authenticator.logout('Logout', 'main')
 
-    # --- 3. Βήμα Γ: Η ΕΦΑΡΜΟΓΗ (Μπαίνει μόνο αν is_verified == True) ---
+    # --- APP ---
     else:
-        # Header & Logout
         c1, c2 = st.columns([3, 1])
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
             if st.button("Έξοδος"):
-                # Σβήνουμε και το 2FA cookie κατά την έξοδο
                 cookie_manager.delete("2fa_verified_user")
                 authenticator.logout('Έξοδος', 'main')
 
-        # --- APP LOGIC ---
         if 'step' not in st.session_state: st.session_state.step = 1
         if 'phone' not in st.session_state: st.session_state.phone = ""
         if 'token' not in st.session_state: st.session_state.token = None
@@ -171,7 +183,6 @@ elif authentication_status == True:
                 pkg = st.radio("Πακέτο:", ["🥤 Shake (Data)", "🗣️ Voice"], horizontal=True)
                 offer = "BDLCUShakeBon7" if "Shake" in pkg else "BDLBonVoice3"
                 times = st.slider("Ποσότητα:", 1, 50, 20)
-                
                 if st.button(f"ΕΝΕΡΓΟΠΟΙΗΣΗ ({times}x) 🔥", type="primary"):
                     bar = st.progress(0); succ = 0
                     for i in range(times):
