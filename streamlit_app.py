@@ -12,31 +12,89 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (PERMANENT DARK MODE) ---
+# --- 2. PREMIUM CSS STYLING (PRO DARK) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    .stApp {background-color: #0e1117 !important; font-family: 'Inter', sans-serif !important;}
-    h1, h2, h3, h4, p, span, div[data-testid="stMarkdownContainer"] p {color: #e6e6e6 !important;}
-    button p { color: #ffffff !important; }
+    /* Import Font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    /* Γενικό Φόντο (Midnight Gradient) */
+    .stApp {
+        background: radial-gradient(circle at top, #1e2028, #0e1117) !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+
+    /* Χρώματα Κειμένου */
+    h1, h2, h3, h4, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: #e6e6e6 !important;
+    }
+    
+    /* Εξαίρεση: Κείμενο μέσα στα κουμπιά */
+    button p { color: #ffffff !important; font-weight: 600 !important; }
+
+    /* Κάρτες (Glassmorphism Effect) */
     div[data-testid="stForm"], div[data-testid="stExpander"] {
-        background-color: #262730 !important; border: 1px solid #3b3c3d !important;
-        border-radius: 15px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; padding: 30px !important;
+        background-color: rgba(38, 39, 48, 0.95) !important; /* Σκούρο με ελάχιστη διαφάνεια */
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        padding: 40px !important;
+        backdrop-filter: blur(10px);
     }
+
+    /* Inputs (Κουτάκια κειμένου) */
     div[data-testid="stTextInput"] input {
-        background-color: #161b22 !important; color: #ffffff !important;
-        border: 1px solid #454749 !important; border-radius: 8px !important; padding: 12px !important;
+        background-color: #12141a !important; /* Πολύ σκούρο */
+        color: #ffffff !important;
+        border: 1px solid #333 !important;
+        border-radius: 10px !important;
+        padding: 14px !important;
+        font-size: 15px !important;
     }
-    div[data-testid="stTextInput"] input:focus {border-color: #e60000 !important; box-shadow: 0 0 0 1px #e60000 !important;}
-    div[data-testid="stTextInput"] label {color: #b0b0b0 !important; font-size: 14px !important;}
+
+    /* Input Focus */
+    div[data-testid="stTextInput"] input:focus {
+        border-color: #e60000 !important;
+        box-shadow: 0 0 0 2px rgba(230, 0, 0, 0.25) !important;
+    }
+    
+    /* Labels */
+    div[data-testid="stTextInput"] label {
+        color: #a0a0a0 !important;
+        font-size: 13px !important;
+        margin-bottom: 8px !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Κουμπιά (Vodafone Red Gradient - Premium) */
     div[data-testid="stButton"] button {
-        background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important; color: #ffffff !important;
-        border: none !important; border-radius: 8px !important; font-weight: bold !important;
-        padding: 12px 24px !important; box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4) !important;
+        background: linear-gradient(135deg, #ff0000 0%, #b30000 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 14px 28px !important;
+        font-size: 16px !important;
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3) !important;
+        transition: all 0.3s ease;
     }
-    div[data-testid="stButton"] button:hover {transform: scale(1.02); box-shadow: 0 6px 16px rgba(230, 0, 0, 0.6) !important;}
-    div[data-testid="stAlert"] {background-color: #262730 !important; color: #e6e6e6 !important; border: 1px solid #454749 !important;}
+
+    div[data-testid="stButton"] button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 0, 0, 0.5) !important;
+    }
+
+    /* Alerts */
+    div[data-testid="stAlert"] {
+        background-color: #262730 !important;
+        color: #e6e6e6 !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 12px;
+    }
+
+    /* Απόκρυψη στοιχείων Streamlit */
     #MainMenu, footer, header {visibility: hidden;}
+    
 </style>
 """, unsafe_allow_html=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -50,7 +108,7 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="manager_safe_logout")
+cookie_manager = stx.CookieManager(key="manager_pro")
 
 # --- 5. AUTHENTICATOR SETUP ---
 users_config = {}
@@ -86,12 +144,14 @@ def api_activate(token, phone, offer):
 # --- LOGIC START ---
 # ==========================================
 
-name, authentication_status, username = authenticator.login('main')
+# 🔹 ΔΙΟΡΘΩΣΗ: Αλλάξαμε το όνομα της φόρμας από 'main' σε 'Secure Access'
+name, authentication_status, username = authenticator.login('Secure Access', 'main')
 
 if authentication_status == False:
     st.error('❌ Λάθος Username ή Password')
 elif authentication_status == None:
-    st.info('Παρακαλώ συνδεθείτε.')
+    # Αντί για απλό μήνυμα, δεν δείχνουμε τίποτα (η φόρμα φαίνεται ήδη)
+    pass
 
 elif authentication_status == True:
     
@@ -108,66 +168,52 @@ elif authentication_status == True:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown(f"<h3 style='text-align: center;'>🔐 2FA Security</h3>", unsafe_allow_html=True)
-            st.info("Για λόγους ασφαλείας, απαιτείται επαλήθευση OTP την πρώτη φορά.")
+            st.info("⚠️ Νέα συσκευή: Απαιτείται κωδικός επαλήθευσης.")
             
             otp_code = st.text_input("6-digit Code", max_chars=6)
             
-            if st.button("VERIFY & REMEMBER ME 🚀", type="primary"):
+            if st.button("VERIFY & REMEMBER DEVICE 🚀", type="primary"):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
                 if totp.verify(otp_code, valid_window=4):
-                    # Set Session
                     st.session_state.session_verified = True
-                    # Set Cookie
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_free_pass", username, expires_at=expires)
                     
-                    st.success("✅ Επιτυχία! Αποθήκευση 'Free Pass'...")
-                    with st.spinner("Saving session..."):
+                    st.success("✅ Επιτυχία! Είσοδος...")
+                    with st.spinner("Redirecting..."):
                         time.sleep(2) 
                     st.rerun()
                 else:
                     st.error("❌ Λάθος κωδικός!")
             
-            # Logout Button (Safe Version - No Crash)
+            # Logout Button (Safe)
             if st.button("Logout"):
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
-                try:
-                    cookie_manager.delete("cu_main_cookie", key="logout_del_main_temp")
-                except:
-                    pass
+                try: cookie_manager.delete("cu_main_cookie", key="logout_del_main_temp")
+                except: pass
                 st.rerun()
 
     else:
-        # --- MAIN APP (ΕΧΕΙΣ FREE PASS) ---
+        # --- MAIN APP ---
         c1, c2 = st.columns([3, 1])
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
             
-            # --- SAFE LOGOUT BUTTON (FIXED KEY ERROR) ---
-            if st.button("Έξοδος (Διαγραφή Cookie)", type="primary"):
-                # 1. Safe Delete Free Pass
-                try:
-                    cookie_manager.delete("cu_free_pass", key="logout_del_free")
-                except:
-                    pass
+            # Safe Logout
+            if st.button("Έξοδος", type="primary"):
+                try: cookie_manager.delete("cu_free_pass", key="logout_del_free")
+                except: pass
                 
                 st.session_state.session_verified = False
-                
-                # 2. Reset Authenticator State
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
                 
-                # 3. Safe Delete Login Cookie
-                try:
-                    cookie_manager.delete("cu_main_cookie", key="logout_del_main_final")
-                except:
-                    pass
-                
-                # 4. Επανεκκίνηση
+                try: cookie_manager.delete("cu_main_cookie", key="logout_del_main_final")
+                except: pass
                 st.rerun()
 
         if 'step' not in st.session_state: st.session_state.step = 1
@@ -179,7 +225,7 @@ elif authentication_status == True:
                 phone_input = st.text_input("Κινητό (Vodafone CU)", placeholder="694...", max_chars=10)
                 if st.button("SMS 📩", type="primary"):
                     if len(phone_input)==10:
-                        with st.spinner("Wait..."):
+                        with st.spinner("Connecting..."):
                             if api_send_sms(phone_input):
                                 st.session_state.phone = phone_input
                                 st.session_state.step = 2
@@ -194,13 +240,13 @@ elif authentication_status == True:
                 cc1, cc2 = st.columns(2)
                 if cc1.button("Πίσω"): st.session_state.step=1; st.rerun()
                 if cc2.button("Είσοδος", type="primary"):
-                    with st.spinner("Checking..."):
+                    with st.spinner("Verifying..."):
                         token = api_verify_otp(st.session_state.phone, otp_input)
                         if token: st.session_state.token=token; st.session_state.step=3; st.rerun()
                         else: st.error("Λάθος SMS OTP")
 
         elif st.session_state.step == 3:
-            st.success(f"Συνδέθηκε: {st.session_state.phone}")
+            st.success(f"Connected: {st.session_state.phone}")
             with st.container(border=True):
                 pkg = st.radio("Πακέτο:", ["🥤 Shake (Data)", "🗣️ Voice"], horizontal=True)
                 offer = "BDLCUShakeBon7" if "Shake" in pkg else "BDLBonVoice3"
