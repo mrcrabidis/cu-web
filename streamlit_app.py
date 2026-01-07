@@ -10,53 +10,79 @@ from streamlit_authenticator import Hasher
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (MODERN & CLEAN) ---
+# --- 2. CSS STYLING (DARK TEXT FIX) ---
 st.markdown("""
 <style>
-    /* Γενικό Φόντο */
-    .stApp {background-color: #f4f4f4;}
-    
-    /* Κρύψιμο περιττών */
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    /* 1. Ρύθμιση Φόντου σε όλη την εφαρμογή */
+    .stApp {
+        background-color: #f0f2f6 !important;
+    }
 
-    /* Κάρτα Login & Forms */
+    /* 2. ΑΝΑΓΚΑΣΤΙΚΗ ΑΛΛΑΓΗ ΧΡΩΜΑΤΟΣ ΚΕΙΜΕΝΟΥ ΣΕ ΜΑΥΡΟ */
+    /* Αυτό διορθώνει το πρόβλημα που δεν διαβάζονται οι τίτλοι */
+    h1, h2, h3, h4, h5, h6, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: #0d0d0d !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* 3. Κάρτα Login & Περιεχομένου */
     div[data-testid="stForm"], div[data-testid="stExpander"] {
-        background-color: white;
+        background-color: #ffffff !important; /* Καθαρό λευκό */
         padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        border: 1px solid #e0e0e0;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border: 1px solid #dcdcdc;
     }
 
-    /* Inputs */
+    /* 4. Διόρθωση των Inputs (Κουτάκια που γράφεις) */
+    /* Να είναι λευκά/γκρι με μαύρα γράμματα */
     div[data-testid="stTextInput"] input {
-        background-color: #f9f9f9 !important;
-        color: #333 !important;
-        border-radius: 10px;
-        border: 1px solid #ddd;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #cccccc;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    /* Το Label πάνω από το input (π.χ. "Username") */
+    div[data-testid="stTextInput"] label {
+        color: #333333 !important;
+        font-weight: bold;
     }
 
-    /* Buttons (Vodafone Red) */
+    /* 5. Κουμπιά (Vodafone Red Style) */
     div[data-testid="stButton"] button {
         background-color: #e60000 !important;
-        color: white !important;
-        width: 100%;
-        border-radius: 10px;
+        color: #ffffff !important;
         border: none;
-        padding: 12px;
+        padding: 10px 20px;
         font-weight: bold;
-        transition: all 0.3s ease;
+        border-radius: 8px;
+        width: 100%;
+        font-size: 16px;
+        transition: 0.3s;
     }
     div[data-testid="stButton"] button:hover {
-        background-color: #cc0000 !important;
-        transform: translateY(-2px);
+        background-color: #b30000 !important;
+        color: #ffffff !important;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
     }
+    /* Κειμενάκι μέσα στο κουμπί να είναι σίγουρα άσπρο */
+    div[data-testid="stButton"] button p {
+        color: #ffffff !important;
+    }
+
+    /* 6. Απόκρυψη περιττών στοιχείων */
+    #MainMenu {visibility: hidden;} 
+    footer {visibility: hidden;} 
+    header {visibility: hidden;}
     
-    /* Alert Boxes */
-    div[data-testid="stAlert"] {border-radius: 10px;}
+    /* 7. Διόρθωση Alert/Info Boxes */
+    div[data-testid="stAlert"] {
+        background-color: #ebf5ff;
+        color: #004085;
+    }
 </style>
 """, unsafe_allow_html=True)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- 3. SECRETS & SETUP ---
 try:
