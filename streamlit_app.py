@@ -5,7 +5,7 @@ import urllib3
 import time
 import pyotp
 import streamlit_authenticator as stauth
-from streamlit_authenticator.utilities.hasher import Hasher
+from streamlit_authenticator import Hasher # <--- ΕΔΩ ΕΓΙΝΕ Η ΑΛΛΑΓΗ
 
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
@@ -24,27 +24,25 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # --- 3. ΦΟΡΤΩΣΗ SECRETS & SETUP AUTHENTICATOR ---
 try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
-    RAW_USERS = st.secrets["users"] # Διαβάζουμε τους χρήστες όπως τους έχεις ήδη
+    RAW_USERS = st.secrets["users"]
 except:
     st.error("⚠️ Error: Secrets missing")
     st.stop()
 
-# Μετατροπή των απλών χρηστών στη δομή που θέλει το Streamlit-Authenticator
-# (Αυτό γίνεται αυτόματα για να μην αλλάξεις τα secrets σου)
+# Setup Users
 users_config = {}
 for username, password in RAW_USERS.items():
-    # Hash password on the fly για ασφάλεια
+    # Τώρα αυτό θα δουλέψει σωστά με την έκδοση 0.2.3
     hashed_pass = Hasher([str(password)]).generate()[0]
     users_config[username] = {
         "name": username,
         "password": hashed_pass,
-        "email": f"{username}@cu.gr" # Τυπικό email
+        "email": f"{username}@cu.gr"
     }
 
 credentials = {"usernames": users_config}
 cookie_config = {"expiry_days": 30, "key": "cu_booster_auth_key", "name": "cu_booster_cookie"}
 
-# Δημιουργία του Authenticator Object
 authenticator = stauth.Authenticate(
     credentials,
     cookie_config['name'],
@@ -52,7 +50,7 @@ authenticator = stauth.Authenticate(
     cookie_config['expiry_days']
 )
 
-# --- 4. API FUNCTIONS (Cached) ---
+# --- 4. API FUNCTIONS ---
 @st.cache_resource
 def get_session(): s = requests.Session(); s.verify = False; return s
 BASE_URL = "https://eu3.api.vodafone.com"
@@ -75,41 +73,25 @@ def api_activate(token, phone, offer):
 # --- MAIN LOGIC ---
 # ==========================================
 
-# 1. ΕΜΦΑΝΙΣΗ ΦΟΡΜΑΣ LOGIN (Αυτόματα από τη βιβλιοθήκη)
-# Το 'main' σημαίνει ότι θα εμφανιστεί στην κύρια σελίδα
 name, authentication_status, username = authenticator.login('main')
 
-# 2. ΕΛΕΓΧΟΣ ΚΑΤΑΣΤΑΣΗΣ
 if authentication_status == False:
-    st.error('❌ Λάθος όνομα χρήστη ή κωδικός')
-
+    st.error('❌ Λάθος στοιχεία')
 elif authentication_status == None:
-    # Δεν έχει συνδεθεί ακόμα
-    st.info('Παρακαλώ εισάγετε τα στοιχεία σας.')
-
+    st.info('Παρακαλώ συνδεθείτε.')
 elif authentication_status == True:
-    # --- ΕΔΩ ΞΕΚΙΝΑΕΙ Η ΕΦΑΡΜΟΓΗ ΓΙΑ ΤΟΥΣ ΣΥΝΔΕΔΕΜΕΝΟΥΣ ---
     
-    # --- HUMAN 2FA CHECK (Προαιρετικό αλλά το ζήτησες) ---
-    # Αν θες να κρατάει τη σύνδεση για πάντα μετά το login, 
-    # ο έλεγχος 2FA πρέπει να γίνει ΜΙΑ φορά.
-    # Εδώ το απλοποιούμε: Αν πέρασε το Login της βιβλιοθήκης (που κρατάει cookie),
-    # θεωρούμε ότι είναι έμπιστος. Αν θες ΝΤΕ ΚΑΙ ΚΑΛΑ κωδικό κάθε φορά, πες μου.
-    # Αλλά για session stability, εμπιστευόμαστε το authenticator.
-    
-    # --- HEADER & LOGOUT ---
+    # Header & Logout
     c1, c2 = st.columns([3, 1])
     with c1: st.title("🚀 CU Booster")
     with c2: 
         st.write(f"👤 {name}")
         authenticator.logout('Έξοδος', 'main')
 
-    # --- APP STATES ---
     if 'step' not in st.session_state: st.session_state.step = 1
     if 'phone' not in st.session_state: st.session_state.phone = ""
     if 'token' not in st.session_state: st.session_state.token = None
 
-    # --- APP LOGIC ---
     if st.session_state.step == 1:
         with st.container(border=True):
             phone_input = st.text_input("Κινητό", placeholder="694...", max_chars=10)
@@ -120,12 +102,12 @@ elif authentication_status == True:
                             st.session_state.phone = phone_input
                             st.session_state.step = 2
                             st.rerun()
-                        else: st.error("Error sending SMS")
-                else: st.warning("10 Digits required")
+                        else: st.error("Error")
+                else: st.warning("10 Digits")
 
     elif st.session_state.step == 2:
         with st.container(border=True):
-            st.info(f"OTP sent to: {st.session_state.phone}")
+            st.info(f"OTP: {st.session_state.phone}")
             otp_input = st.text_input("OTP Code")
             cc1, cc2 = st.columns(2)
             if cc1.button("Back"): st.session_state.step=1; st.rerun()
