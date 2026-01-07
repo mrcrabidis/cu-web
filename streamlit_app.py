@@ -24,13 +24,15 @@ except Exception as e:
     st.info("Πήγαινε στο Streamlit Dashboard -> Settings -> Secrets και πρόσθεσέ τα.")
     st.stop()
 
-# --- 3. COOKIE MANAGER SETUP (ΔΙΟΡΘΩΜΕΝΟ) ---
-# ΣΗΜΑΝΤΙΚΟ: Προσθέσαμε key="auth_cookie_manager" για να μην χάνεται η αναφορά
+# --- 3. COOKIE MANAGER SETUP (HARD SYNC FIX) ---
+# Βάζουμε κλειδί για να μην χάνει την αναφορά του το component
 cookie_manager = stx.CookieManager(key="auth_cookie_manager")
 
-# --- SYNC FIX: Περιμένουμε λίγο και κάνουμε rerun την πρώτη φορά ---
+# --- ΤΡΙΚ: Wait & Rerun ---
+# Αυτό τρέχει ΜΟΝΟ την πρώτη φορά που ανοίγει η σελίδα ή κάνεις Refresh
 if "cookies_synced" not in st.session_state:
-    time.sleep(0.7) # Αυξήθηκε ελάχιστα για σιγουριά
+    with st.spinner("🔄 Έλεγχος ασφαλείας..."):
+        time.sleep(1.5) # Δίνουμε 1.5 δευτερόλεπτο χρόνο στον browser
     st.session_state.cookies_synced = True
     st.rerun()
 
@@ -95,27 +97,24 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- SECURITY LOGIC (ΔΙΟΡΘΩΜΕΝΗ) ---
+# --- SECURITY LOGIC (HARD CHECK) ---
 # ==========================================
 
-# 1. Προσπάθεια ανάγνωσης ΤΟΥ ΣΥΓΚΕΚΡΙΜΕΝΟΥ cookie (πιο αξιόπιστο από get_all)
-cookie_user = cookie_manager.get(cookie="cu_app_user")
+# 1. Παίρνουμε ΟΛΑ τα cookies για σιγουριά
+all_cookies = cookie_manager.get_all()
+cookie_user = all_cookies.get("cu_app_user") if all_cookies else None
 
 # Initialization
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "system_username" not in st.session_state:
-    st.session_state.system_username = ""
-if "user_verified" not in st.session_state: 
-    st.session_state.user_verified = False
+if "authenticated" not in st.session_state: st.session_state.authenticated = False
+if "system_username" not in st.session_state: st.session_state.system_username = ""
+if "user_verified" not in st.session_state: st.session_state.user_verified = False
 
 # 2. ΑΥΤΟΜΑΤΟ LOGIN ΑΝ ΒΡΕΘΗΚΕ COOKIE
 if not st.session_state.authenticated and cookie_user:
-    # Επιβεβαίωση ότι ο χρήστης υπάρχει ακόμα στα secrets
     if cookie_user in SYSTEM_USERS:
         st.session_state.authenticated = True
         st.session_state.system_username = cookie_user
-        st.rerun() 
+        st.rerun()
 
 def login_system():
     st.markdown("<h2 style='text-align: center;'>🔐 Secure Access</h2>", unsafe_allow_html=True)
@@ -148,9 +147,9 @@ def login_system():
                 if totp.verify(otp_code):
                     st.session_state.authenticated = True
                     
-                    # --- ΑΠΟΘΗΚΕΥΣΗ COOKIE ---
+                    # --- ΑΠΟΘΗΚΕΥΣΗ COOKIE (30 ΗΜΕΡΕΣ) ---
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
-                    cookie_manager.set("cu_app_user", st.session_state.system_username, expires_at=expires, key="set_cookie")
+                    cookie_manager.set("cu_app_user", st.session_state.system_username, expires_at=expires, key="final_cookie_set")
                     
                     st.toast("Επιτυχία! Καλωσήρθατε.", icon="✅")
                     time.sleep(0.5)
@@ -182,8 +181,8 @@ with col_head1:
 with col_head2:
     st.caption(f"User: {st.session_state.system_username}")
     if st.button("🔴 Exit"):
-        # Διαγραφή cookie με το κλειδί του manager
-        cookie_manager.delete("cu_app_user", key="del_cookie")
+        # Διαγραφή cookie με explicit key
+        cookie_manager.delete("cu_app_user", key="logout_delete")
         st.session_state.authenticated = False
         st.session_state.user_verified = False
         st.session_state.step = 1
