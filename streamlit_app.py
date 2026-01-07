@@ -50,7 +50,7 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="manager_v1")
+cookie_manager = stx.CookieManager(key="manager_final_fix")
 
 # --- 5. AUTHENTICATOR SETUP ---
 users_config = {}
@@ -133,7 +133,7 @@ elif authentication_status == True:
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
-                cookie_manager.delete("cu_main_cookie")
+                cookie_manager.delete("cu_main_cookie", key="logout_del_main")
                 st.rerun()
 
     else:
@@ -143,20 +143,19 @@ elif authentication_status == True:
         with c2: 
             st.write(f"👤 {name}")
             
-            # --- ΤΟ ΔΙΟΡΘΩΜΕΝΟ ΚΟΥΜΠΙ ΕΞΟΔΟΥ ---
+            # --- ΤΟ ΔΙΟΡΘΩΜΕΝΟ ΚΟΥΜΠΙ ΕΞΟΔΟΥ (Με μοναδικά keys) ---
             if st.button("Έξοδος (Διαγραφή Cookie)", type="primary"):
-                # 1. Σβήνουμε το Free Pass
-                cookie_manager.delete("cu_free_pass")
+                # 1. Σβήνουμε το Free Pass (Βάζουμε key για να μην χτυπάει Duplicate ID)
+                cookie_manager.delete("cu_free_pass", key="logout_del_free")
                 st.session_state.session_verified = False
                 
-                # 2. Χειροκίνητο Logout από τον Authenticator (χωρίς να καλέσουμε το .logout())
-                # Καθαρίζουμε τα session state variables που χρησιμοποιεί η βιβλιοθήκη
+                # 2. Χειροκίνητο Logout
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
                 
-                # 3. Σβήνουμε και το cookie του Login
-                cookie_manager.delete("cu_main_cookie")
+                # 3. Σβήνουμε το Login Cookie (Με unique key)
+                cookie_manager.delete("cu_main_cookie", key="logout_del_main_final")
                 
                 # 4. Επανεκκίνηση
                 st.rerun()
