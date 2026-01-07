@@ -12,7 +12,7 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. ELITE DARK CSS (ME PADDING FIX) ---
+# --- 2. ELITE DARK CSS (PROFESSIONAL UI) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -24,7 +24,7 @@ st.markdown("""
         font-family: 'Inter', sans-serif !important;
     }
     
-    /* 2. ΣΠΡΩΧΝΟΥΜΕ ΤΑ ΠΑΝΤΑ ΚΑΤΩ (ΓΙΑ ΝΑ ΜΗΝ ΚΟΛΛΑΕΙ ΠΑΝΩ) */
+    /* 2. FORCE PADDING - Κατεβάζει το περιεχόμενο */
     div.block-container {
         padding-top: 5rem !important;
         padding-bottom: 5rem !important;
@@ -44,7 +44,7 @@ st.markdown("""
         border-radius: 16px !important;
     }
     
-    /* Η κυρίως κάρτα να έχει σκιά */
+    /* Σκιά στην κύρια φόρμα */
     div[data-testid="stForm"] {
         box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
         padding: 40px !important;
@@ -75,7 +75,7 @@ st.markdown("""
         font-size: 15px !important;
         transition: all 0.2s ease;
         box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2) !important;
-        width: 100%; /* Full Width */
+        width: 100%;
     }
     div[data-testid="stButton"] button:hover {
         background-color: #d63026 !important;
@@ -117,8 +117,9 @@ except:
     st.error("⚠️ Error: Secrets missing!")
     st.stop()
 
-# --- 4. COOKIE MANAGER (TO KEY ΕΙΝΑΙ ΣΗΜΑΝΤΙΚΟ) ---
-cookie_manager = stx.CookieManager(key="session_manager_v3")
+# --- 4. COOKIE MANAGER ---
+# Χρησιμοποιούμε το κλειδί από τον κώδικα που μου έδωσες για σταθερότητα
+cookie_manager = stx.CookieManager(key="free_pass_manager_pro")
 
 # --- 5. AUTHENTICATOR ---
 users_config = {}
@@ -127,7 +128,7 @@ for username, password in RAW_USERS.items():
     users_config[username] = {"name": username, "password": hashed_pass, "email": f"{username}@cu.gr"}
 
 credentials = {"usernames": users_config}
-cookie_config = {"expiry_days": 3, "key": "cu_auth_login", "name": "cu_login_token"}
+cookie_config = {"expiry_days": 30, "key": "cu_main_auth", "name": "cu_main_cookie"}
 
 authenticator = stauth.Authenticate(credentials, cookie_config['name'], cookie_config['key'], cookie_config['expiry_days'])
 
@@ -156,13 +157,11 @@ def api_activate(token, phone, offer):
 
 login_placeholder = st.empty()
 
-# --- 1. ΑΝΑΓΝΩΣΗ COOKIE (ΓΙΑ ΝΑ ΜΗ ΣΕ ΠΕΤΑΕΙ ΕΞΩ) ---
-# Ελέγχουμε αν υπάρχει το cookie "cu_safe_device"
-cookie_2fa_val = cookie_manager.get("cu_safe_device")
+# --- 1. ΑΝΑΓΝΩΣΗ COOKIE ---
+cookie_2fa = cookie_manager.get("cu_free_pass")
 
 # --- 2. LOGIN FORM ---
 with login_placeholder.container():
-    # Εμφανίζει τη φόρμα ΜΟΝΟ αν δεν έχεις κάνει login
     if not st.session_state.get("authentication_status"):
         name, authentication_status, username = authenticator.login('Member Access', 'main')
     else:
@@ -170,41 +169,45 @@ with login_placeholder.container():
         username = st.session_state["username"]
         authentication_status = True
 
-# --- 3. MAIN LOGIC (ΑΝ ΕΧΕΙΣ ΠΕΡΑΣΕΙ ΤΟ PASSWORD) ---
+# --- 3. MAIN LOGIC ---
 if authentication_status:
-    login_placeholder.empty() # Καθαρίζουμε τη Login form
+    login_placeholder.empty()
 
-    # ΕΛΕΓΧΟΣ: Είσαι Verified;
-    # α) Υπάρχει cookie για το username σου;
-    # β) Ή μήπως μόλις έκανες verify σε αυτό το session;
-    is_verified_cookie = (cookie_2fa_val == username)
+    # Λογική από τον κώδικά σου: Έλεγχος Cookie + Session
+    is_verified_cookie = (cookie_2fa == username)
     is_verified_session = st.session_state.get("session_verified", False)
-
+    
     FINAL_ACCESS = is_verified_cookie or is_verified_session
 
     if not FINAL_ACCESS:
-        # --- SHOW 2FA SCREEN ---
+        # --- SHOW 2FA SCREEN (Elite UI) ---
         with st.container(border=True):
             st.markdown("<h3 style='text-align: center; color: #fff;'>🔐 Verification</h3>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #666; font-size: 13px;'>Enter 2FA Code</p>", unsafe_allow_html=True)
             
             otp_code = st.text_input("Authenticator Code", max_chars=6, label_visibility="collapsed", placeholder="000 000")
             
-            if st.button("VERIFY DEVICE 🚀", type="primary", use_container_width=True):
+            if st.button("VERIFY & REMEMBER ME 🚀", type="primary", use_container_width=True):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
+                # Χρήση valid_window=4 για ασφάλεια συγχρονισμού ώρας
                 if totp.verify(otp_code, valid_window=4):
-                    # 1. Ενημερώνουμε τη RAM (για άμεση είσοδο)
+                    
+                    # 1. Ενημερώνουμε το Session State (RAM) για άμεση είσοδο
                     st.session_state.session_verified = True
                     
-                    # 2. Φτιάχνουμε το Cookie για 3 ΗΜΕΡΕΣ
-                    expires = datetime.datetime.now() + datetime.timedelta(days=3)
-                    cookie_manager.set("cu_safe_device", username, expires_at=expires)
+                    # 2. Γράφουμε το Cookie (30 Ημέρες - όπως στον κώδικά σου)
+                    expires = datetime.datetime.now() + datetime.timedelta(days=30)
+                    cookie_manager.set("cu_free_pass", username, expires_at=expires)
                     
-                    st.success("Verified! Redirecting...")
-                    time.sleep(1) # Δίνουμε χρόνο στο cookie να γραφτεί
+                    st.success("✅ Success! Saving session...")
+                    
+                    # 3. Η "Μαγική" καθυστέρηση για να προλάβει να γραφτεί το cookie
+                    with st.spinner("Redirecting..."):
+                        time.sleep(2) 
+                    
                     st.rerun()
                 else:
-                    st.error("Invalid Code")
+                    st.error("❌ Invalid Code")
             
             st.markdown("<br>", unsafe_allow_html=True)
             st.link_button("💬 Support", "https://t.me/mrcrabx", use_container_width=True)
@@ -214,7 +217,7 @@ if authentication_status:
                  st.rerun()
 
     else:
-        # --- MAIN APP (DASHBOARD) ---
+        # --- SHOW DASHBOARD (LOGGED IN) ---
         
         # Header Layout
         c1, c2 = st.columns([3, 1.5]) 
@@ -223,14 +226,14 @@ if authentication_status:
             st.caption(f"User: {name}")
         with c2: 
             if st.button("🚪 Logout", use_container_width=True):
-                # ΔΙΑΓΡΑΦΗ ΟΛΩΝ ΤΩΝ COOKIES
-                try: cookie_manager.delete("cu_safe_device", key="del_safe")
+                # Καθαρισμός Cookies & Session
+                try: cookie_manager.delete("cu_free_pass", key="del_free_final")
                 except: pass
                 
                 st.session_state.session_verified = False
                 st.session_state["authentication_status"] = None
                 
-                try: cookie_manager.delete("cu_login_token", key="del_login")
+                try: cookie_manager.delete("cu_main_cookie", key="del_main_final")
                 except: pass
                 
                 st.rerun()
