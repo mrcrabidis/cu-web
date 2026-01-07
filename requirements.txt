@@ -3,3 +3,4 @@ requests
 pyotp
 streamlit-authenticator==0.2.3
 PyYAML
+extra-streamlit-components
