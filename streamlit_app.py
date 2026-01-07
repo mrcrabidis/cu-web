@@ -7,7 +7,7 @@ import pyotp
 import datetime
 import extra_streamlit_components as stx
 
-# --- 1. RUTHMISEIS ---
+# --- 1. SETUP ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
 # --- 2. SECRETS ---
@@ -19,8 +19,7 @@ except:
     st.stop()
 
 # --- 3. COOKIE MANAGER ---
-# Χρησιμοποιούμε σταθερό κλειδί για να μην κάνει reset το component
-cookie_manager = stx.CookieManager(key="cm_auth")
+cookie_manager = stx.CookieManager(key="cm_debug")
 
 # --- 4. CSS ---
 st.markdown("""
@@ -34,9 +33,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- API ---
 @st.cache_resource
-def get_session():
-    s = requests.Session(); s.verify = False; return s
-
+def get_session(): s = requests.Session(); s.verify = False; return s
 BASE_URL = "https://eu3.api.vodafone.com"
 AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
@@ -54,16 +51,14 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- SECURITY LOGIC (CLEAN & STABLE) ---
+# --- SECURITY LOGIC (DEBUG MODE) ---
 # ==========================================
 
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
 if "system_username" not in st.session_state: st.session_state.system_username = ""
 
-# 1. Προσπάθεια ανάγνωσης Cookie (Χωρίς delays)
+# Check Cookie
 cookie_val = cookie_manager.get("cu_secure_login")
-
-# 2. Συγχρονισμός Cookie -> Session
 if not st.session_state.authenticated and cookie_val:
     if cookie_val in SYSTEM_USERS:
         st.session_state.authenticated = True
@@ -75,20 +70,32 @@ def login_page():
     
     if "user_verified" not in st.session_state: st.session_state.user_verified = False
 
-    # ΦΑΣΗ 1: Username Check
+    # --- DEBUGGING: ΕΜΦΑΝΙΣΗ ΚΩΔΙΚΩΝ ΓΙΑ ΕΛΕΓΧΟ ---
+    # (Αυτό θα το σβήσουμε μετά)
+    with st.expander("🛠️ DEBUG: Τι διαβάζει το σύστημα;", expanded=True):
+        st.write("Το σύστημα περιμένει τους εξής χρήστες:")
+        st.write(SYSTEM_USERS)
+        st.write(f"Το κλειδί 2FA είναι: {ADMIN_2FA_KEY}")
+    # -----------------------------------------------
+
     if not st.session_state.user_verified:
         with st.container(border=True):
             st.subheader("Login")
             u = st.text_input("Username")
             p = st.text_input("Password", type="password")
             if st.button("Next", use_container_width=True):
-                if u in SYSTEM_USERS and SYSTEM_USERS[u] == p:
+                # ΜΕΤΑΤΡΟΠΗ ΣΕ STRING ΓΙΑ ΣΙΓΟΥΡΙΑ
+                u_str = str(u).strip() # Αφαιρούμε κενά
+                p_str = str(p).strip()
+                
+                # ΕΛΕΓΧΟΣ
+                if u_str in SYSTEM_USERS and str(SYSTEM_USERS[u_str]) == p_str:
                     st.session_state.user_verified = True
-                    st.session_state.system_username = u
+                    st.session_state.system_username = u_str
                     st.rerun()
-                else: st.error("Wrong Credentials")
+                else:
+                    st.error(f"Λάθος! Δοκίμασες: '{u_str}' με κωδικό '{p_str}'")
 
-    # ΦΑΣΗ 2: 2FA & Save Cookie
     else:
         with st.container(border=True):
             st.info(f"User: **{st.session_state.system_username}**")
@@ -96,24 +103,20 @@ def login_page():
             
             if st.button("Login 🚀", use_container_width=True, type="primary"):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
-                if totp.verify(otp_code):
-                    # Α. Βάζουμε τον χρήστη μέσα ΑΜΕΣΩΣ (χωρίς να περιμένουμε το cookie)
+                # valid_window=1 σημαίνει ότι δέχεται κωδικούς +/- 30 δευτερόλεπτα
+                if totp.verify(otp_code, valid_window=1):
                     st.session_state.authenticated = True
-                    
-                    # Β. Γράφουμε το cookie για το μέλλον
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_secure_login", st.session_state.system_username, expires_at=expires)
-                    
                     st.success("Success!")
-                    time.sleep(0.5) # Μικρή αναμονή για οπτικό εφέ
+                    time.sleep(0.5)
                     st.rerun()
-                else: st.error("Wrong Code")
+                else: st.error("Λάθος κωδικός 2FA")
             
             if st.button("Back"): 
                 st.session_state.user_verified = False
                 st.rerun()
 
-# Αν δεν είμαστε μέσα, δείξε Login και ΣΤΑΜΑΤΑ
 if not st.session_state.authenticated:
     login_page()
     st.stop()
@@ -131,7 +134,6 @@ with col1: st.title("🚀 CU Booster")
 with col2:
     st.caption(f"👤 {st.session_state.system_username}")
     if st.button("Exit"):
-        # Διαγραφή cookie και logout
         cookie_manager.delete("cu_secure_login")
         st.session_state.clear()
         st.rerun()
