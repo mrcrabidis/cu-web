@@ -9,17 +9,80 @@ from streamlit_authenticator import Hasher
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING ---
+# --- 2. CSS STYLING (ΒΕΛΤΙΩΜΕΝΟ DESIGN) ---
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-    .stApp {background-color: #ffffff;}
-    div[data-testid="stForm"] {border: none; padding: 0;}
-    .stButton button {width: 100%; font-weight: bold; border-radius: 8px;}
-    .stProgress > div > div > div > div {background-color: #e60000;}
+    /* 1. Γενικό Φόντο Εφαρμογής */
+    .stApp {
+        background-color: #f4f4f4; /* Απαλό γκρι για να ξεχωρίζει η κάρτα */
+    }
+
+    /* 2. Κρύψιμο περιττών στοιχείων */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* 3. Στυλ Κάρτας Login (Κεντράρισμα και Σκιά) */
+    div[data-testid="stForm"] {
+        background-color: white;
+        padding: 40px;
+        border-radius: 20px; /* Στρογγυλεμένες γωνίες */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* Ωραία σκιά */
+        border: 1px solid #e0e0e0;
+        max-width: 450px;
+        margin: 0 auto; /* Κεντράρισμα */
+    }
+
+    /* 4. Διόρθωση Τίτλων και Κειμένων (Να φαίνονται μαύρα) */
+    h1, h2, h3, h4, p, label, .stMarkdown {
+        color: #333333 !important;
+        font-family: 'Helvetica Neue', sans-serif;
+    }
+
+    /* 5. Στυλ για τα Inputs (Username/Password) */
+    div[data-testid="stTextInput"] input {
+        background-color: #f9f9f9 !important; /* Ανοιχτό γκρι κουτί */
+        color: #333 !important; /* Μαύρα γράμματα */
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    
+    /* Όταν κάνεις κλικ στο κουτί */
+    div[data-testid="stTextInput"] input:focus {
+        border-color: #e60000; /* Κόκκινο περίγραμμα στο κλικ */
+        box-shadow: 0 0 5px rgba(230, 0, 0, 0.2);
+    }
+
+    /* 6. Στυλ Κουμπιού Login (Vodafone Red) */
+    div[data-testid="stButton"] button {
+        background-color: #e60000 !important; /* Κόκκινο CU */
+        color: white !important;
+        width: 100%; /* Να πιάνει όλο το φάρδος */
+        border-radius: 10px;
+        border: none;
+        padding: 12px;
+        font-weight: bold;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+
+    /* Hover εφέ στο κουμπί */
+    div[data-testid="stButton"] button:hover {
+        background-color: #cc0000 !important; /* Πιο σκούρο κόκκινο */
+        box-shadow: 0 4px 10px rgba(230, 0, 0, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    /* 7. Διόρθωση του Alert Message (το μπλε κουτί) */
+    div[data-testid="stAlert"] {
+        background-color: #e8f4fd;
+        color: #0d3c61;
+        border-radius: 10px;
+        border: none;
+    }
 </style>
 """, unsafe_allow_html=True)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
 # --- 🍪 ΡΥΘΜΙΣΕΙΣ COOKIES (ΕΔΩ ΤΑ ΒΑΖΕΙΣ) ---
