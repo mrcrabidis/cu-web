@@ -7,6 +7,7 @@ import pyotp
 import extra_streamlit_components as stx
 import streamlit_authenticator as stauth
 from streamlit_authenticator import Hasher
+import datetime
 
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
@@ -48,8 +49,9 @@ except:
     st.error("⚠️ Error: Secrets missing!")
     st.stop()
 
-# --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="2fa_tracker_final")
+# --- 4. COOKIE MANAGER (Για το Free Pass) ---
+# Βάζουμε key για να μην κάνει reset το component
+cookie_manager = stx.CookieManager(key="free_pass_manager")
 
 # --- 5. AUTHENTICATOR ---
 users_config = {}
@@ -82,7 +84,7 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- MAIN FLOW ---
+# --- LOGIC START ---
 # ==========================================
 
 name, authentication_status, username = authenticator.login('main')
@@ -94,46 +96,62 @@ elif authentication_status == None:
 
 elif authentication_status == True:
     
-    # --- CHECK 2FA ---
-    # Ελέγχουμε αν υπάρχει το cookie που λέει ότι έχεις περάσει το 2FA
-    cookie_2fa = cookie_manager.get("2fa_verified_user")
-    is_verified = (cookie_2fa == username)
+    # --- CHECK FREE PASS (COOKIE) ---
+    # Εδώ είναι το "κλειδί". Διαβάζουμε αν υπάρχει το cookie που λέει "Είμαι Verified"
+    cookie_2fa = cookie_manager.get("cu_free_pass")
     
-    # Αν ΔΕΝ έχεις περάσει το 2FA, στο ζητάει
-    if not is_verified:
+    # Είμαστε ΟΚ αν:
+    # 1. Το cookie υπάρχει ΚΑΙ είναι ίσο με το username μας
+    # 2. Ή αν μόλις περάσαμε το 2FA σε αυτό το session (session_state override)
+    is_verified_cookie = (cookie_2fa == username)
+    is_verified_session = st.session_state.get("session_verified", False)
+    
+    FINAL_ACCESS = is_verified_cookie or is_verified_session
+    
+    if not FINAL_ACCESS:
+        # --- SHOW 2FA FORM ---
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
-            st.markdown(f"<h3 style='text-align: center;'>🔐 2FA Verification</h3>", unsafe_allow_html=True)
-            st.caption("Άνοιξε το Google Authenticator και γράψε τον κωδικό.")
+            st.markdown(f"<h3 style='text-align: center;'>🔐 2FA Security</h3>", unsafe_allow_html=True)
+            st.info("Για λόγους ασφαλείας, απαιτείται επαλήθευση OTP την πρώτη φορά.")
             
             otp_code = st.text_input("6-digit Code", max_chars=6)
             
-            if st.button("VERIFY 🚀", type="primary"):
+            if st.button("VERIFY & REMEMBER ME 🚀", type="primary"):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
-                # valid_window=2 -> Δίνει περιθώριο +/- 60 δευτερολέπτων για να μην αποτυγχάνει εύκολα
-                if totp.verify(otp_code, valid_window=2):
-                    import datetime
+                # Δίνουμε μεγάλο παράθυρο (valid_window=4) για να μην έχεις θέμα με την ώρα
+                if totp.verify(otp_code, valid_window=4):
+                    
+                    # 1. Ενημερώνουμε το Session State για να μπει ΑΜΕΣΩΣ (χωρίς να περιμένει το cookie)
+                    st.session_state.session_verified = True
+                    
+                    # 2. Γράφουμε το Cookie για να μπαίνει ΜΕΛΛΟΝΤΙΚΑ (30 μέρες)
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
-                    # Αποθηκεύουμε ότι πέρασες τον έλεγχο
-                    cookie_manager.set("2fa_verified_user", username, expires_at=expires)
-                    st.success("Correct!")
-                    time.sleep(0.5)
+                    cookie_manager.set("cu_free_pass", username, expires_at=expires)
+                    
+                    st.success("✅ Επιτυχία! Αποθήκευση 'Free Pass'...")
+                    
+                    # 3. ΚΡΙΣΙΜΟ: Περιμένουμε να γραφτεί το cookie πριν το refresh
+                    with st.spinner("Saving session..."):
+                        time.sleep(2) 
+                    
                     st.rerun()
                 else:
                     st.error("❌ Λάθος κωδικός!")
-
+            
             if st.button("Logout"):
                 authenticator.logout('Logout', 'main')
 
-    # --- MAIN APP (Εμφανίζεται μόνο αν περάσεις το 2FA) ---
     else:
+        # --- MAIN APP (ΕΧΕΙΣ FREE PASS) ---
         c1, c2 = st.columns([3, 1])
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
-            if st.button("Έξοδος"):
-                # Διαγράφουμε το 2FA cookie κατά την έξοδο
-                cookie_manager.delete("2fa_verified_user")
+            if st.button("Έξοδος (Διαγραφή Cookie)"):
+                # Διαγραφή του Free Pass
+                cookie_manager.delete("cu_free_pass")
+                st.session_state.session_verified = False
                 authenticator.logout('Έξοδος', 'main')
 
         if 'step' not in st.session_state: st.session_state.step = 1
