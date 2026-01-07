@@ -1,5 +1,5 @@
 streamlit
 requests
 pyotp
-streamlit-authenticator
+streamlit-authenticator==0.2.3
 PyYAML
