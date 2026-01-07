@@ -50,7 +50,7 @@ except:
     st.stop()
 
 # --- 4. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="manager_final_fix")
+cookie_manager = stx.CookieManager(key="manager_safe_logout")
 
 # --- 5. AUTHENTICATOR SETUP ---
 users_config = {}
@@ -128,12 +128,15 @@ elif authentication_status == True:
                 else:
                     st.error("❌ Λάθος κωδικός!")
             
-            # Logout Button (Safe Version)
+            # Logout Button (Safe Version - No Crash)
             if st.button("Logout"):
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
-                cookie_manager.delete("cu_main_cookie", key="logout_del_main")
+                try:
+                    cookie_manager.delete("cu_main_cookie", key="logout_del_main_temp")
+                except:
+                    pass
                 st.rerun()
 
     else:
@@ -143,19 +146,26 @@ elif authentication_status == True:
         with c2: 
             st.write(f"👤 {name}")
             
-            # --- ΤΟ ΔΙΟΡΘΩΜΕΝΟ ΚΟΥΜΠΙ ΕΞΟΔΟΥ (Με μοναδικά keys) ---
+            # --- SAFE LOGOUT BUTTON (FIXED KEY ERROR) ---
             if st.button("Έξοδος (Διαγραφή Cookie)", type="primary"):
-                # 1. Σβήνουμε το Free Pass (Βάζουμε key για να μην χτυπάει Duplicate ID)
-                cookie_manager.delete("cu_free_pass", key="logout_del_free")
+                # 1. Safe Delete Free Pass
+                try:
+                    cookie_manager.delete("cu_free_pass", key="logout_del_free")
+                except:
+                    pass
+                
                 st.session_state.session_verified = False
                 
-                # 2. Χειροκίνητο Logout
+                # 2. Reset Authenticator State
                 st.session_state["authentication_status"] = None
                 st.session_state["name"] = None
                 st.session_state["username"] = None
                 
-                # 3. Σβήνουμε το Login Cookie (Με unique key)
-                cookie_manager.delete("cu_main_cookie", key="logout_del_main_final")
+                # 3. Safe Delete Login Cookie
+                try:
+                    cookie_manager.delete("cu_main_cookie", key="logout_del_main_final")
+                except:
+                    pass
                 
                 # 4. Επανεκκίνηση
                 st.rerun()
