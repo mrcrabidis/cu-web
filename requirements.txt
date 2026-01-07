@@ -1,4 +1,5 @@
 streamlit
 requests
 pyotp
-extra-streamlit-components
+streamlit-authenticator
+PyYAML
