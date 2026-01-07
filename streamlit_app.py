@@ -12,34 +12,90 @@ import datetime
 # --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CSS STYLING (MODERN & PREMIUM) ---
+# --- 2. CSS STYLING (VODAFONE CLEAN UI FIX) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    .stApp {background: linear-gradient(to bottom, #ffffff, #f4f7f9) !important; font-family: 'Inter', sans-serif !important;}
-    h1, h2, h3, p, label, span {color: #2c3e50 !important;}
-    div[data-testid="stForm"], div[data-testid="stExpander"] {
-        background-color: #ffffff !important; border-radius: 24px !important;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.08) !important; border: none !important; padding: 40px !important;
+    /* 1. Εισαγωγή Font */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    /* 2. Γενικό Φόντο Εφαρμογής */
+    .stApp {
+        background-color: #f4f4f4 !important; /* Ανοιχτό γκρι φόντο */
+        font-family: 'Roboto', sans-serif !important;
     }
+
+    /* 3. ΕΠΙΘΕΤΙΚΗ ΔΙΟΡΘΩΣΗ ΧΡΩΜΑΤΩΝ ΚΕΙΜΕΝΟΥ (ΟΛΑ ΣΚΟΥΡΑ) */
+    /* Αυτό αναγκάζει τίτλους, κείμενα, labels να γίνουν σκούρα γκρι */
+    h1, h2, h3, h4, h5, h6, p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: #333333 !important; 
+    }
+    
+    /* Εξαίρεση: Τα κείμενα μέσα στα κουμπιά πρέπει να μείνουν άσπρα */
+    button p, button span {
+        color: #ffffff !important;
+    }
+
+    /* 4. Στυλ για τις Κάρτες (Login, 2FA, Forms) */
+    div[data-testid="stForm"], div[data-testid="stExpander"], div.block-container {
+        background-color: #ffffff !important; /* Καθαρό λευκό */
+        border-radius: 15px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; /* Απαλή σκιά */
+        padding: 30px !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+
+    /* 5. Inputs (Πεδία κειμένου) */
     div[data-testid="stTextInput"] input {
-        background-color: #f8f9fa !important; color: #333 !important; border: 2px solid transparent !important;
-        border-radius: 12px !important; padding: 14px !important;
+        background-color: #f9f9f9 !important;
+        color: #000000 !important; /* Μαύρα γράμματα */
+        border: 1px solid #cccccc !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
     }
+    
+    /* Όταν κάνεις κλικ στο input */
     div[data-testid="stTextInput"] input:focus {
-        background-color: #ffffff !important; border-color: #e60000 !important; box-shadow: 0 0 0 4px rgba(230, 0, 0, 0.1) !important;
+        border-color: #e60000 !important; /* Κόκκινο Vodafone */
+        box-shadow: 0 0 0 2px rgba(230, 0, 0, 0.2) !important;
     }
+
+    /* 6. Labels πάνω από τα inputs */
+    div[data-testid="stTextInput"] label {
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        color: #555555 !important;
+        margin-bottom: 5px !important;
+    }
+
+    /* 7. Κουμπιά (Vodafone Red) */
     div[data-testid="stButton"] button {
-        background: linear-gradient(135deg, #e60000 0%, #c20000 100%) !important; color: white !important;
-        border: none !important; padding: 14px 24px !important; border-radius: 12px !important; width: 100%;
+        background-color: #e60000 !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        padding: 12px 24px !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(230, 0, 0, 0.2) !important;
     }
-    div[data-testid="stButton"] button:hover {transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 25px rgba(230, 0, 0, 0.4) !important;}
-    div[data-testid="stButton"] button p {color: #ffffff !important;}
-    div[data-testid="stAlert"] {border-radius: 12px !important; border-left: 6px solid #e60000 !important;}
+
+    div[data-testid="stButton"] button:hover {
+        background-color: #cc0000 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(230, 0, 0, 0.3) !important;
+    }
+
+    /* 8. Alert Boxes (Info/Success/Error) */
+    div[data-testid="stAlert"] {
+        padding: 15px !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Απόκρυψη Streamlit στοιχείων */
     #MainMenu, footer, header {visibility: hidden;}
+    
 </style>
 """, unsafe_allow_html=True)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- 3. SECRETS ---
 try:
@@ -129,7 +185,7 @@ elif authentication_status == True:
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_free_pass", username, expires_at=expires)
                     
-                    st.success("✅ Επιτυχία! Αποθήκευση 'Free Pass'...")
+                    st.success("✅ Επιτυχία!")
                     
                     # 3. ΚΡΙΣΙΜΟ: Περιμένουμε να γραφτεί το cookie πριν το refresh
                     with st.spinner("Saving session..."):
@@ -148,7 +204,7 @@ elif authentication_status == True:
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
-            if st.button("Έξοδος (Διαγραφή Cookie)"):
+            if st.button("Έξοδος"):
                 # Διαγραφή του Free Pass
                 cookie_manager.delete("cu_free_pass")
                 st.session_state.session_verified = False
