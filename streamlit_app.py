@@ -7,7 +7,7 @@ import pyotp
 import datetime
 import extra_streamlit_components as stx
 
-# --- 1. SETUP ---
+# --- 1. RUTHMISEIS ---
 st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="centered", initial_sidebar_state="collapsed")
 
 # --- 2. SECRETS ---
@@ -19,7 +19,7 @@ except:
     st.stop()
 
 # --- 3. COOKIE MANAGER ---
-cookie_manager = stx.CookieManager(key="cm_debug")
+cookie_manager = stx.CookieManager(key="cm_auth_final")
 
 # --- 4. CSS ---
 st.markdown("""
@@ -51,7 +51,7 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- SECURITY LOGIC (DEBUG MODE) ---
+# --- SECURITY LOGIC ---
 # ==========================================
 
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -60,9 +60,10 @@ if "system_username" not in st.session_state: st.session_state.system_username =
 # Check Cookie
 cookie_val = cookie_manager.get("cu_secure_login")
 if not st.session_state.authenticated and cookie_val:
-    if cookie_val in SYSTEM_USERS:
+    # Μετατροπή σε string για ασφάλεια
+    if str(cookie_val) in SYSTEM_USERS:
         st.session_state.authenticated = True
-        st.session_state.system_username = cookie_val
+        st.session_state.system_username = str(cookie_val)
         st.rerun()
 
 def login_page():
@@ -70,32 +71,25 @@ def login_page():
     
     if "user_verified" not in st.session_state: st.session_state.user_verified = False
 
-    # --- DEBUGGING: ΕΜΦΑΝΙΣΗ ΚΩΔΙΚΩΝ ΓΙΑ ΕΛΕΓΧΟ ---
-    # (Αυτό θα το σβήσουμε μετά)
-    with st.expander("🛠️ DEBUG: Τι διαβάζει το σύστημα;", expanded=True):
-        st.write("Το σύστημα περιμένει τους εξής χρήστες:")
-        st.write(SYSTEM_USERS)
-        st.write(f"Το κλειδί 2FA είναι: {ADMIN_2FA_KEY}")
-    # -----------------------------------------------
-
+    # ΦΑΣΗ 1: Username
     if not st.session_state.user_verified:
         with st.container(border=True):
             st.subheader("Login")
             u = st.text_input("Username")
             p = st.text_input("Password", type="password")
             if st.button("Next", use_container_width=True):
-                # ΜΕΤΑΤΡΟΠΗ ΣΕ STRING ΓΙΑ ΣΙΓΟΥΡΙΑ
-                u_str = str(u).strip() # Αφαιρούμε κενά
+                # Μετατροπή σε string για να αποφύγουμε bugs με αριθμούς
+                u_str = str(u).strip()
                 p_str = str(p).strip()
                 
-                # ΕΛΕΓΧΟΣ
                 if u_str in SYSTEM_USERS and str(SYSTEM_USERS[u_str]) == p_str:
                     st.session_state.user_verified = True
                     st.session_state.system_username = u_str
                     st.rerun()
                 else:
-                    st.error(f"Λάθος! Δοκίμασες: '{u_str}' με κωδικό '{p_str}'")
+                    st.error("Λάθος στοιχεία")
 
+    # ΦΑΣΗ 2: 2FA & Save Cookie
     else:
         with st.container(border=True):
             st.info(f"User: **{st.session_state.system_username}**")
@@ -103,7 +97,7 @@ def login_page():
             
             if st.button("Login 🚀", use_container_width=True, type="primary"):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
-                # valid_window=1 σημαίνει ότι δέχεται κωδικούς +/- 30 δευτερόλεπτα
+                # valid_window=1: Συγχωρεί μικρή διαφορά ώρας (+/- 30 sec)
                 if totp.verify(otp_code, valid_window=1):
                     st.session_state.authenticated = True
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
