@@ -15,82 +15,32 @@ st.set_page_config(page_title="CU Booster Pro", page_icon="🚀", layout="center
 # --- 2. CSS STYLING (PERMANENT DARK MODE) ---
 st.markdown("""
 <style>
-    /* 1. Εισαγωγή Font */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-    /* 2. Γενικό Φόντο Εφαρμογής (Σκούρο) */
-    .stApp {
-        background-color: #0e1117 !important; /* Πολύ σκούρο γκρι/μαύρο */
-        font-family: 'Inter', sans-serif !important;
-    }
-
-    /* 3. Χρώμα Κειμένου (Λευκό για να φαίνεται στο μαύρο) */
-    h1, h2, h3, h4, h5, h6, p, span, div[data-testid="stMarkdownContainer"] p {
-        color: #e6e6e6 !important; /* Απαλό λευκό */
-    }
-    
-    /* Εξαίρεση: Κείμενο μέσα στα κουμπιά */
+    .stApp {background-color: #0e1117 !important; font-family: 'Inter', sans-serif !important;}
+    h1, h2, h3, h4, p, span, div[data-testid="stMarkdownContainer"] p {color: #e6e6e6 !important;}
     button p { color: #ffffff !important; }
-
-    /* 4. Κάρτες (Login, Forms) - Σκούρο Γκρι */
     div[data-testid="stForm"], div[data-testid="stExpander"] {
-        background-color: #262730 !important; /* Σκούρο γκρι για τις κάρτες */
-        border: 1px solid #3b3c3d !important;
-        border-radius: 15px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; /* Σκιά */
-        padding: 30px !important;
+        background-color: #262730 !important; border: 1px solid #3b3c3d !important;
+        border-radius: 15px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; padding: 30px !important;
     }
-
-    /* 5. Inputs (Κουτάκια κειμένου) - Μαύρο φόντο, Λευκά γράμματα */
     div[data-testid="stTextInput"] input {
-        background-color: #161b22 !important; /* Σχεδόν μαύρο */
-        color: #ffffff !important; /* Λευκά γράμματα */
-        border: 1px solid #454749 !important;
-        border-radius: 8px !important;
-        padding: 12px !important;
+        background-color: #161b22 !important; color: #ffffff !important;
+        border: 1px solid #454749 !important; border-radius: 8px !important; padding: 12px !important;
     }
-
-    /* Όταν κάνεις κλικ στο κουτί */
-    div[data-testid="stTextInput"] input:focus {
-        border-color: #e60000 !important; /* Κόκκινο περίγραμμα */
-        box-shadow: 0 0 0 1px #e60000 !important;
-    }
-    
-    /* Τα Labels (π.χ. "Username") πάνω από τα κουτιά */
-    div[data-testid="stTextInput"] label {
-        color: #b0b0b0 !important; /* Γκρι ανοιχτό */
-        font-size: 14px !important;
-    }
-
-    /* 6. Κουμπιά (Vodafone Red - Glowing) */
+    div[data-testid="stTextInput"] input:focus {border-color: #e60000 !important; box-shadow: 0 0 0 1px #e60000 !important;}
+    div[data-testid="stTextInput"] label {color: #b0b0b0 !important; font-size: 14px !important;}
     div[data-testid="stButton"] button {
-        background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        padding: 12px 24px !important;
-        box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4) !important; /* Κόκκινη λάμψη */
-        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important; color: #ffffff !important;
+        border: none !important; border-radius: 8px !important; font-weight: bold !important;
+        padding: 12px 24px !important; box-shadow: 0 4px 12px rgba(230, 0, 0, 0.4) !important;
     }
-
-    div[data-testid="stButton"] button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 6px 16px rgba(230, 0, 0, 0.6) !important;
-    }
-
-    /* 7. Alerts */
-    div[data-testid="stAlert"] {
-        background-color: #262730 !important;
-        color: #e6e6e6 !important;
-        border: 1px solid #454749 !important;
-    }
-
-    /* Απόκρυψη */
+    div[data-testid="stButton"] button:hover {transform: scale(1.02); box-shadow: 0 6px 16px rgba(230, 0, 0, 0.6) !important;}
+    div[data-testid="stAlert"] {background-color: #262730 !important; color: #e6e6e6 !important; border: 1px solid #454749 !important;}
     #MainMenu, footer, header {visibility: hidden;}
-
 </style>
 """, unsafe_allow_html=True)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # --- 3. SECRETS ---
 try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
@@ -99,11 +49,10 @@ except:
     st.error("⚠️ Error: Secrets missing!")
     st.stop()
 
-# --- 4. COOKIE MANAGER (Για το Free Pass) ---
-# Βάζουμε key για να μην κάνει reset το component
-cookie_manager = stx.CookieManager(key="free_pass_manager")
+# --- 4. COOKIE MANAGER ---
+cookie_manager = stx.CookieManager(key="manager_v1")
 
-# --- 5. AUTHENTICATOR ---
+# --- 5. AUTHENTICATOR SETUP ---
 users_config = {}
 for username, password in RAW_USERS.items():
     hashed_pass = Hasher([str(password)]).generate()[0]
@@ -147,12 +96,8 @@ elif authentication_status == None:
 elif authentication_status == True:
     
     # --- CHECK FREE PASS (COOKIE) ---
-    # Εδώ είναι το "κλειδί". Διαβάζουμε αν υπάρχει το cookie που λέει "Είμαι Verified"
     cookie_2fa = cookie_manager.get("cu_free_pass")
     
-    # Είμαστε ΟΚ αν:
-    # 1. Το cookie υπάρχει ΚΑΙ είναι ίσο με το username μας
-    # 2. Ή αν μόλις περάσαμε το 2FA σε αυτό το session (session_state override)
     is_verified_cookie = (cookie_2fa == username)
     is_verified_session = st.session_state.get("session_verified", False)
     
@@ -169,28 +114,27 @@ elif authentication_status == True:
             
             if st.button("VERIFY & REMEMBER ME 🚀", type="primary"):
                 totp = pyotp.TOTP(ADMIN_2FA_KEY)
-                # Δίνουμε μεγάλο παράθυρο (valid_window=4) για να μην έχεις θέμα με την ώρα
                 if totp.verify(otp_code, valid_window=4):
-                    
-                    # 1. Ενημερώνουμε το Session State για να μπει ΑΜΕΣΩΣ (χωρίς να περιμένει το cookie)
+                    # Set Session
                     st.session_state.session_verified = True
-                    
-                    # 2. Γράφουμε το Cookie για να μπαίνει ΜΕΛΛΟΝΤΙΚΑ (30 μέρες)
+                    # Set Cookie
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
                     cookie_manager.set("cu_free_pass", username, expires_at=expires)
                     
-                    st.success("✅ Επιτυχία!")
-                    
-                    # 3. ΚΡΙΣΙΜΟ: Περιμένουμε να γραφτεί το cookie πριν το refresh
+                    st.success("✅ Επιτυχία! Αποθήκευση 'Free Pass'...")
                     with st.spinner("Saving session..."):
                         time.sleep(2) 
-                    
                     st.rerun()
                 else:
                     st.error("❌ Λάθος κωδικός!")
             
+            # Logout Button (Safe Version)
             if st.button("Logout"):
-                authenticator.logout('Logout', 'main')
+                st.session_state["authentication_status"] = None
+                st.session_state["name"] = None
+                st.session_state["username"] = None
+                cookie_manager.delete("cu_main_cookie")
+                st.rerun()
 
     else:
         # --- MAIN APP (ΕΧΕΙΣ FREE PASS) ---
@@ -198,11 +142,24 @@ elif authentication_status == True:
         with c1: st.title("🚀 CU Booster")
         with c2: 
             st.write(f"👤 {name}")
-            if st.button("Έξοδος"):
-                # Διαγραφή του Free Pass
+            
+            # --- ΤΟ ΔΙΟΡΘΩΜΕΝΟ ΚΟΥΜΠΙ ΕΞΟΔΟΥ ---
+            if st.button("Έξοδος (Διαγραφή Cookie)", type="primary"):
+                # 1. Σβήνουμε το Free Pass
                 cookie_manager.delete("cu_free_pass")
                 st.session_state.session_verified = False
-                authenticator.logout('Έξοδος', 'main')
+                
+                # 2. Χειροκίνητο Logout από τον Authenticator (χωρίς να καλέσουμε το .logout())
+                # Καθαρίζουμε τα session state variables που χρησιμοποιεί η βιβλιοθήκη
+                st.session_state["authentication_status"] = None
+                st.session_state["name"] = None
+                st.session_state["username"] = None
+                
+                # 3. Σβήνουμε και το cookie του Login
+                cookie_manager.delete("cu_main_cookie")
+                
+                # 4. Επανεκκίνηση
+                st.rerun()
 
         if 'step' not in st.session_state: st.session_state.step = 1
         if 'phone' not in st.session_state: st.session_state.phone = ""
