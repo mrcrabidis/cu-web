@@ -15,10 +15,10 @@ try:
     ADMIN_2FA_KEY = st.secrets["security"]["admin_2fa_key"]
     SYSTEM_USERS = st.secrets["users"]
 except:
-    st.error("⚠️ Setup Error: Secrets missing")
+    st.error("⚠️ ΣΦΑΛΜΑ: Λείπουν τα Secrets!")
     st.stop()
 
-# --- 3. COOKIE MANAGER ---
+# --- 3. COOKIE MANAGER SETUP ---
 cookie_manager = stx.CookieManager(key="auth_manager")
 
 # --- 4. CSS ---
@@ -31,7 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- API (CACHED SESSION ΓΙΑ ΤΑΧΥΤΗΤΑ) ---
+# --- API (CACHED SESSION) ---
 @st.cache_resource
 def get_session():
     s = requests.Session()
@@ -57,32 +57,40 @@ def api_activate(token, phone, offer):
     except: return 999
 
 # ==========================================
-# --- SECURITY LOGIC (SMART WAIT) ---
+# --- SECURITY LOGIC (RELOAD FIX) ---
 # ==========================================
 
 # Initialization
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
 if "system_username" not in st.session_state: st.session_state.system_username = ""
-if "checked_cookies" not in st.session_state: st.session_state.checked_cookies = False
 
-# 1. Αν είμαστε ήδη μέσα, προχωράμε
-if not st.session_state.authenticated:
+# --- ΤΡΙΚ ΓΙΑ ΤΟ REFRESH ---
+# Διαβάζουμε ΟΛΑ τα cookies
+cookies = cookie_manager.get_all()
+
+# Αν τα cookies είναι κενά (σημαίνει ότι δεν πρόλαβαν να φορτώσουν), 
+# και δεν έχουμε ξανακάνει δοκιμή (retries), κάνουμε ένα reload.
+if not cookies:
+    if "cookie_retry" not in st.session_state:
+        st.session_state.cookie_retry = 0
     
-    # 2. Προσπάθεια ανάγνωσης cookie
-    cookie_user = cookie_manager.get("cu_user_stable")
-    
-    # 3. Αν βρήκαμε cookie -> Login
-    if cookie_user and cookie_user in SYSTEM_USERS:
+    if st.session_state.cookie_retry < 2: # Δοκιμάζουμε μέχρι 2 φορές
+        st.session_state.cookie_retry += 1
+        time.sleep(0.5) # Μικρή καθυστέρηση
+        st.rerun()
+else:
+    # Αν βρήκαμε cookies, μηδενίζουμε τον μετρητή
+    st.session_state.cookie_retry = 0
+
+# Ψάχνουμε το συγκεκριμένο cookie
+cookie_user = cookies.get("cu_master_cookie") if cookies else None
+
+# Αν βρήκαμε cookie και δεν είμαστε μέσα -> AUTO LOGIN
+if not st.session_state.authenticated and cookie_user:
+    if cookie_user in SYSTEM_USERS:
         st.session_state.authenticated = True
         st.session_state.system_username = cookie_user
         st.rerun()
-    
-    # 4. Αν ΔΕΝ βρήκαμε cookie και ΔΕΝ έχουμε ξανα-ελέγξει (Refresh scenario)
-    elif not st.session_state.checked_cookies:
-        with st.spinner("🔄 Checking Session..."):
-            time.sleep(1) # Δίνουμε 1 δευτερόλεπτο στον browser να ξυπνήσει
-            st.session_state.checked_cookies = True # Σημαία ότι ελέγξαμε
-            st.rerun() # Ξανατρέχουμε για να δούμε αν ήρθε το cookie
 
 def login_page():
     st.markdown("<h2 style='text-align: center;'>🔐 Secure Access</h2>", unsafe_allow_html=True)
@@ -109,8 +117,9 @@ def login_page():
                     st.session_state.authenticated = True
                     # Γράφουμε το Cookie (30 μέρες)
                     expires = datetime.datetime.now() + datetime.timedelta(days=30)
-                    cookie_manager.set("cu_user_stable", st.session_state.system_username, expires_at=expires)
-                    time.sleep(0.5)
+                    cookie_manager.set("cu_master_cookie", st.session_state.system_username, expires_at=expires)
+                    st.success("Welcome!")
+                    time.sleep(1)
                     st.rerun()
                 else: st.error("Wrong Code")
             if st.button("Back"): st.session_state.user_verified = False; st.rerun()
@@ -132,7 +141,7 @@ with col1: st.title("🚀 CU Booster")
 with col2:
     st.caption(f"👤 {st.session_state.system_username}")
     if st.button("Exit"):
-        cookie_manager.delete("cu_user_stable")
+        cookie_manager.delete("cu_master_cookie")
         st.session_state.clear()
         st.rerun()
 
@@ -141,7 +150,7 @@ if st.session_state.step == 1:
         phone_input = st.text_input("Κινητό", placeholder="694...", max_chars=10)
         if st.button("SMS 📩", use_container_width=True, type="primary"):
             if len(phone_input)==10:
-                with st.spinner("Connecting..."):
+                with st.spinner("Wait..."):
                     if api_send_sms(phone_input):
                         st.session_state.phone = phone_input
                         st.session_state.step = 2
@@ -172,7 +181,7 @@ elif st.session_state.step == 3:
             for i in range(times):
                 if api_activate(st.session_state.token, st.session_state.phone, offer) in [200, 201, 403]: succ+=1
                 bar.progress((i+1)/times)
-                time.sleep(0.05) # Πολύ μικρή καθυστέρηση για να μην κολλάει το API
+                time.sleep(0.1) 
             st.success(f"Done: {succ}/{times}")
     if st.button("New Number", use_container_width=True):
         st.session_state.step=1; st.session_state.phone=""; st.session_state.token=None; st.rerun()
