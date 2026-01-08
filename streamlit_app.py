@@ -7,8 +7,8 @@ import urllib3
 # --- CONFIGURATION ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 st.set_page_config(
-    page_title="CU Commander",
-    page_icon="🔴",
+    page_title="CU BOOST",
+    page_icon="🚀",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -19,68 +19,110 @@ AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- CUSTOM CSS (MODERN UI) ---
+# --- CUSTOM CSS (PROFESSIONAL & MODERN UI) ---
 st.markdown("""
 <style>
-    /* Γενικό Στυλ */
+    /* Γενικό Στυλ & Φόντο */
     .stApp {
-        background-color: #0e1117;
+        background: linear-gradient(135deg, #0f1116 0%, #1a1c24 100%);
+        color: #e0e0e0;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
-    
+
+    /* Εξαφάνιση των Streamlit στοιχείων */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Κύριος Τίτλος (Gradient) */
+    .main-title {
+        text-align: center;
+        font-size: 3em;
+        font-weight: 800;
+        margin-bottom: 20px;
+        background: linear-gradient(90deg, #E60000, #FF4B2B);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* Κάρτες (Glassmorphism) */
+    .css-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        margin-bottom: 25px;
+        transition: transform 0.3s ease;
+    }
+
     /* Inputs */
     .stTextInput > div > div > input {
-        background-color: #262730;
-        color: white;
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
         border-radius: 12px;
-        height: 50px;
+        height: 55px;
         font-size: 18px;
-        border: 1px solid #444;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding-left: 20px;
+        transition: all 0.3s ease;
     }
-    
+    .stTextInput > div > div > input:focus {
+        border-color: #E60000;
+        box-shadow: 0 0 10px rgba(230, 0, 0, 0.5);
+        background-color: rgba(255, 255, 255, 0.12);
+    }
+
     /* Buttons */
     .stButton > button {
         width: 100%;
         border-radius: 12px;
-        height: 55px;
-        font-weight: bold;
+        height: 60px;
+        font-weight: 700;
         font-size: 18px;
+        letter-spacing: 1px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        text-transform: uppercase;
     }
-    
-    /* Primary Button (Vodafone Red) */
+
+    /* Primary Button (Vodafone Gradient) */
     div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="primary"] {
         background: linear-gradient(90deg, #E60000 0%, #B30000 100%);
         border: none;
     }
     div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="primary"]:hover {
-        box-shadow: 0 0 15px rgba(230, 0, 0, 0.6);
-        transform: scale(1.02);
+        box-shadow: 0 0 20px rgba(230, 0, 0, 0.7);
+        transform: translateY(-2px);
     }
 
-    /* Cards */
-    .css-card {
-        background-color: #1c1e24;
-        padding: 20px;
-        border-radius: 15px;
-        border: 1px solid #333;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        margin-bottom: 20px;
+    /* Secondary Button */
+    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="secondary"] {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
     }
-    
-    /* Metrics */
+    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="secondary"]:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Metrics & Status */
     div[data-testid="stMetricValue"] {
-        font-size: 28px;
+        font-size: 32px;
+        font-weight: 700;
     }
-    
-    /* Hide Streamlit Elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    .stStatus {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 15px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIC FUNCTIONS ---
+# --- LOGIC FUNCTIONS (ΙΔΙΕΣ ΜΕ ΠΡΙΝ) ---
 def get_session():
     s = requests.Session()
     s.verify = False
@@ -129,7 +171,7 @@ def activate_package(token, target_msisdn, offering_id):
         "Content-Type": "application/json",
         "User-Agent": USER_AGENT,
         "Authorization": f"Bearer {token}",
-        "api-key-name": "CUAPP",             
+        "api-key-name": "CUAPP",
         "vf-country-code": "GR"
     }
     payload = {
@@ -149,90 +191,101 @@ if 'phone' not in st.session_state: st.session_state.phone = ""
 if 'token' not in st.session_state: st.session_state.token = None
 
 # Header Logo area
-st.markdown("<h1 style='text-align: center; color: #E60000;'>🔴 CU COMMANDER</h1>", unsafe_allow_html=True)
-st.markdown("---")
+st.markdown("<h1 class='main-title'>🚀 CU BOOST</h1>", unsafe_allow_html=True)
 
 # 1. LOGIN SCREEN
 if st.session_state.step == 'login_phone':
-    st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-    st.subheader("👋 Welcome")
-    st.write("Εισάγετε τον αριθμό CU για σύνδεση")
-    
-    phone_input = st.text_input("Mobile Number", placeholder="69xxxxxxxx", label_visibility="collapsed")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.button("SEND SMS ➡️", type="primary"):
-        if len(phone_input) == 10:
-            with st.spinner("⏳ Επικοινωνία με Vodafone..."):
-                if request_otp(phone_input):
-                    st.session_state.phone = phone_input
-                    st.session_state.step = 'login_otp'
-                    st.rerun()
-                else:
-                    st.toast("❌ Failed to send SMS", icon="⚠️")
-        else:
-            st.toast("⚠️ Ελέγξτε τον αριθμό", icon="📱")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Κεντράρισμα της κάρτας
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col2:
+        st.markdown("<div class='css-card'>", unsafe_allow_html=True)
+        st.subheader("👋 Welcome Back")
+        st.write("Sign in to boost your CU number.")
+        
+        phone_input = st.text_input("Mobile Number", placeholder="Your 10-digit CU Number", label_visibility="collapsed")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("SEND SMS CODE ➡️", type="primary"):
+            if len(phone_input) == 10:
+                with st.spinner("⏳ Connecting to Vodafone..."):
+                    if request_otp(phone_input):
+                        st.session_state.phone = phone_input
+                        st.session_state.step = 'login_otp'
+                        st.rerun()
+                    else:
+                        st.toast("❌ Failed to send SMS", icon="⚠️")
+            else:
+                st.toast("⚠️ Please enter a valid 10-digit number.", icon="📱")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # 2. OTP SCREEN
 elif st.session_state.step == 'login_otp':
-    st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-    st.subheader(f"🔐 Verify {st.session_state.phone}")
-    st.write("Εισάγετε τον κωδικό που λάβατε")
-    
-    otp_input = st.text_input("OTP Code", type="password", placeholder="1234", label_visibility="collapsed")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        if st.button("🔙"):
-            st.session_state.step = 'login_phone'
-            st.rerun()
+    col1, col2, col3 = st.columns([1, 6, 1])
     with col2:
-        if st.button("LOGIN 🚀", type="primary"):
-            with st.spinner("⏳ Verifying..."):
-                token = verify_otp(st.session_state.phone, otp_input)
-                if token:
-                    st.session_state.token = token
-                    st.session_state.step = 'dashboard'
-                    st.balloons()
-                    st.rerun()
-                else:
-                    st.toast("❌ Λάθος κωδικός OTP", icon="⛔")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div class='css-card'>", unsafe_allow_html=True)
+        st.subheader(f"🔐 Verification")
+        st.write(f"Enter the code sent to **{st.session_state.phone}**")
+        
+        otp_input = st.text_input("OTP Code", type="password", placeholder="Your OTP Code", label_visibility="collapsed")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            if st.button("BACK"):
+                st.session_state.step = 'login_phone'
+                st.rerun()
+        with c2:
+            if st.button("LOGIN 🚀", type="primary"):
+                with st.spinner("⏳ Verifying..."):
+                    token = verify_otp(st.session_state.phone, otp_input)
+                    if token:
+                        st.session_state.token = token
+                        st.session_state.step = 'dashboard'
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.toast("❌ Invalid OTP Code", icon="⛔")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # 3. DASHBOARD
 elif st.session_state.step == 'dashboard':
     
     # User Info Card
     st.markdown(f"""
-    <div class='css-card' style='display: flex; justify-content: space-between; align-items: center;'>
+    <div class='css-card' style='display: flex; justify-content: space-between; align-items: center; padding: 20px 30px;'>
         <div>
-            <span style='font-size: 14px; color: #888;'>LOGGED IN AS</span><br>
-            <span style='font-size: 22px; font-weight: bold; color: #E60000;'>{st.session_state.phone}</span>
+            <span style='font-size: 14px; color: #aaa; text-transform: uppercase; letter-spacing: 1px;'>Logged in as</span><br>
+            <span style='font-size: 24px; font-weight: 800; background: linear-gradient(90deg, #E60000, #FF4B2B); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>{st.session_state.phone}</span>
         </div>
-        <div style='font-size: 30px;'>👤</div>
+        <div style='font-size: 36px;'>👤</div>
     </div>
     """, unsafe_allow_html=True)
 
     # Control Card
     st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-    st.write("🎯 **Target Number**")
-    target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
+    st.subheader("🎛️ Boost Controls")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.write("**🎯 Target Number**")
+    target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed", placeholder="Enter Target Number")
     
-    st.write("🎁 **Package**")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.write("**🎁 Select Package**")
     option = st.selectbox("Offer", 
-                          ["🥤 Shake (BDLCUShakeBon7)", "📞 Voice (BDLBonVoice3)"],
+                          ["🥤 CU Shake (BDLCUShakeBon7)", "📞 Voice Bonus (BDLBonVoice3)"],
                           label_visibility="collapsed")
     
     offering_id = "BDLCUShakeBon7" if "Shake" in option else "BDLBonVoice3"
     
-    st.write("🔄 **Quantity**")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.write("**🔄 Quantity**")
     count = st.slider("Quantity", 1, 50, 1, label_visibility="collapsed")
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     
     if st.button("🔥 ACTIVATE NOW", type="primary"):
         clean_target = target.replace(" ", "").replace("+30", "")[-10:]
@@ -241,7 +294,6 @@ elif st.session_state.step == 'dashboard':
         with st.status("🚀 Processing Requests...", expanded=True) as status:
             success, limits, fails = 0, 0, 0
             
-            progress_text = st.empty()
             my_bar = st.progress(0)
             
             for i in range(count):
@@ -274,6 +326,6 @@ elif st.session_state.step == 'dashboard':
 
     st.markdown("</div>", unsafe_allow_html=True)
     
-    if st.button("🚪 Logout"):
+    if st.button("🚪 LOGOUT"):
         st.session_state.clear()
         st.rerun()
