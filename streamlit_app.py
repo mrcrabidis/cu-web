@@ -4,253 +4,226 @@ import base64
 import time
 import urllib3
 
-# --- 1. SETUP & CONFIG ---
+# --- SETUP ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-st.set_page_config(
-    page_title="CU",
-    page_icon="🔴",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="CU", page_icon="🔴", layout="centered", initial_sidebar_state="collapsed")
 
-# --- 2. CONSTANTS ---
+# --- CONSTANTS ---
 BASE_URL = "https://eu3.api.vodafone.com"
 AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- 3. HIGH-END MOBILE CSS ---
+# --- CSS (CLEAN & FLAT) ---
 st.markdown("""
 <style>
-    /* RESET & BACKGROUND */
+    /* 1. BACKGROUND */
     .stApp {
-        background-color: #000000; /* True Black for OLED */
-        color: #ffffff;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+        background-color: #000000;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* CENTER LAYOUT LIKE A MOBILE APP */
-    .block-container {
-        max_width: 380px !important; /* Force Mobile Width */
-        padding-top: 3rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        margin: 0 auto !important; /* Perfect Center */
-    }
-
-    /* REMOVE CLUTTER */
+    /* 2. REMOVE STREAMLIT PADDING/HEADER */
     #MainMenu, footer, header {visibility: hidden;}
-    
-    /* INPUT FIELDS (iOS Style) */
-    .stTextInput > div > div > input {
-        background-color: #1c1c1e !important; /* iOS Dark Gray */
-        color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 50px !important;
-        font-size: 17px !important;
-        padding-left: 15px !important;
-    }
-    .stTextInput > div > div > input:focus {
-        background-color: #2c2c2e !important;
-    }
-    
-    /* SELECT & SLIDER */
-    .stSelectbox > div > div {
-        background-color: #1c1c1e !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        height: 50px !important;
+    .block-container {
+        padding-top: 3rem !important;
+        max-width: 400px !important; /* Mobile Width Only */
+        margin: auto;
     }
 
-    /* BUTTONS */
+    /* 3. INPUT FIELD STYLING (The Box) */
+    /* Αυτό φτιάχνει το input να είναι το ΜΟΝΑΔΙΚΟ κουτί */
+    .stTextInput > div > div > input {
+        background-color: #1C1C1E !important; /* Dark Gray */
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        height: 55px !important;
+        padding-left: 20px !important;
+        font-size: 18px !important;
+    }
+    
+    /* Όταν πατάς κλικ να μην βγάζει κόκκινο περίγραμμα, απλά να φωτίζει λίγο */
+    .stTextInput > div > div > input:focus {
+        background-color: #2C2C2E !important;
+        color: white !important;
+    }
+
+    /* 4. BUTTON STYLING */
     .stButton > button {
         width: 100%;
         border-radius: 12px !important;
-        height: 52px !important;
-        font-weight: 600 !important;
-        font-size: 17px !important;
-        border: none !important;
-        transition: opacity 0.2s;
-    }
-    
-    /* Primary (Red) */
-    button[kind="primary"] {
-        background-color: #E60000 !important;
+        height: 55px !important;
+        background-color: #E60000 !important; /* Vodafone Red */
         color: white !important;
+        font-weight: 600 !important;
+        font-size: 18px !important;
+        border: none !important;
+        margin-top: 10px;
     }
-    button[kind="primary"]:active {
+    .stButton > button:active {
         opacity: 0.7;
     }
-
-    /* Secondary (Gray) */
-    button[kind="secondary"] {
-        background-color: #1c1c1e !important;
-        color: #E60000 !important; /* Red Text */
-    }
-
-    /* CUSTOM CARDS */
-    .ios-group {
-        background-color: #1c1c1e;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 25px;
-    }
     
-    .label-header {
-        color: #8e8e93;
+    /* Secondary Button (Gray) */
+    button[kind="secondary"] {
+        background-color: transparent !important;
+        color: #666 !important;
+        border: 1px solid #333 !important;
+    }
+
+    /* 5. TEXT LABELS */
+    .label {
+        color: #888;
         font-size: 13px;
         text-transform: uppercase;
-        margin-left: 15px;
+        font-weight: 600;
         margin-bottom: 8px;
-        margin-top: 10px;
-        font-weight: 500;
+        margin-left: 5px;
+        letter-spacing: 0.5px;
     }
     
     h1 {
-        font-weight: 700;
-        font-size: 28px;
-        text-align: center;
-        padding-bottom: 20px;
-        margin: 0;
+        color: white; 
+        font-weight: 800; 
+        text-align: center; 
+        margin-bottom: 30px;
+        font-size: 30px;
+    }
+    
+    /* Select Box Styling to match */
+    .stSelectbox > div > div {
+        background-color: #1C1C1E !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        height: 55px !important;
+        display: flex;
+        align-items: center;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. LOGIC ---
+# --- FUNCTIONS ---
 def get_session():
     s = requests.Session()
     s.verify = False
     return s
 
 def request_otp(phone):
-    s = get_session()
-    headers = {"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"}
-    try: return s.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data={"login_hint": f"+30{phone}", "response_type": "code"}).status_code in [200, 202]
+    try:
+        s = get_session()
+        res = s.post(f"{AUTH_OTP_URL}/authorize", 
+                     headers={"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"}, 
+                     data={"login_hint": f"+30{phone}", "response_type": "code"})
+        return res.status_code in [200, 202]
     except: return False
 
 def verify_otp(phone, otp):
-    s = get_session()
-    headers = {"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "*/*"}
     try:
-        res = s.post(f"{AUTH_OTP_URL}/token", headers=headers, data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": base64.b64encode(f"30{phone}:{otp}".encode()).decode()})
+        s = get_session()
+        code = base64.b64encode(f"30{phone}:{otp}".encode()).decode()
+        res = s.post(f"{AUTH_OTP_URL}/token", 
+                     headers={"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "*/*"}, 
+                     data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": code})
         return res.json().get("access_token") if res.status_code == 200 else None
     except: return None
 
 def activate(token, target, offer):
-    s = get_session()
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT}
-    try: return s.post(ORDER_URL, headers=headers, json={"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]}).status_code
+    try:
+        s = get_session()
+        res = s.post(ORDER_URL, 
+                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT}, 
+                     json={"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]})
+        return res.status_code
     except: return 0
 
-# --- 5. UI FLOW ---
-
+# --- UI LOGIC ---
 if 'step' not in st.session_state: st.session_state.step = 'login'
 if 'phone' not in st.session_state: st.session_state.phone = ""
 if 'token' not in st.session_state: st.session_state.token = None
 
-# >>>> LOGIN <<<<
+# > SCREEN 1: LOGIN
 if st.session_state.step == 'login':
-    st.markdown("<h1>CU</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>CU LOGIN</h1>", unsafe_allow_html=True)
     
-    st.markdown("<div class='label-header'>SIGN IN</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
-    phone = st.text_input("Mobile Number", placeholder="69xxxxxxxx", label_visibility="collapsed")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("Continue", type="primary"):
+    st.markdown("<div class='label'>MOBILE NUMBER</div>", unsafe_allow_html=True)
+    phone = st.text_input("Mobile", placeholder="69...", label_visibility="collapsed")
+    
+    if st.button("GET CODE", type="primary"):
         if len(phone) == 10:
             if request_otp(phone):
                 st.session_state.phone = phone
                 st.session_state.step = 'otp'
                 st.rerun()
             else: st.error("Connection Failed")
-        else: st.warning("Check Number")
+        else: st.warning("Invalid Number")
 
-# >>>> OTP <<<<
+# > SCREEN 2: OTP
 elif st.session_state.step == 'otp':
-    st.markdown("<h1>Verify</h1>", unsafe_allow_html=True)
-    st.caption(f"Code sent to {st.session_state.phone}")
+    st.markdown("<h1>VERIFY</h1>", unsafe_allow_html=True)
     
-    st.markdown("<div class='label-header'>SMS CODE</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
-    otp = st.text_input("Code", type="password", placeholder="••••", label_visibility="collapsed")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("Login", type="primary"):
+    st.markdown(f"<div style='text-align:center; color:#666; margin-bottom:20px;'>SMS sent to {st.session_state.phone}</div>", unsafe_allow_html=True)
+    
+    st.markdown("<div class='label'>ENTER CODE</div>", unsafe_allow_html=True)
+    otp = st.text_input("OTP", type="password", placeholder="••••", label_visibility="collapsed")
+    
+    if st.button("LOGIN", type="primary"):
         token = verify_otp(st.session_state.phone, otp)
         if token:
             st.session_state.token = token
-            st.session_state.step = 'app'
+            st.session_state.step = 'dashboard'
             st.rerun()
         else: st.error("Invalid Code")
         
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Back", type="secondary"):
+    if st.button("Go Back", type="secondary"):
         st.session_state.step = 'login'
         st.rerun()
 
-# >>>> DASHBOARD <<<<
-elif st.session_state.step == 'app':
+# > SCREEN 3: DASHBOARD
+elif st.session_state.step == 'dashboard':
+    st.markdown(f"<h1>{st.session_state.phone}</h1>", unsafe_allow_html=True)
     
-    # Status Header
-    st.markdown(f"""
-    <div style='text-align:center; padding-bottom:20px;'>
-        <div style='font-size:32px; font-weight:700;'>{st.session_state.phone}</div>
-        <div style='color:#4CD964; font-size:14px; font-weight:600;'>● Active</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Settings Group
-    st.markdown("<div class='label-header'>CONFIGURATION</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
-    
-    st.caption("Target Number")
+    st.markdown("<div class='label'>TARGET NUMBER</div>", unsafe_allow_html=True)
     target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
     
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True) # Spacer
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    st.caption("Package")
-    ptype = st.selectbox("Type", ["CU Shake (Data)", "Voice Bonus"], label_visibility="collapsed")
+    st.markdown("<div class='label'>PACKAGE</div>", unsafe_allow_html=True)
+    ptype = st.selectbox("Type", ["🥤 CU Shake (Data)", "📞 Voice Bonus"], label_visibility="collapsed")
     
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True) # Spacer
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    st.caption("Quantity")
+    st.markdown("<div class='label'>QUANTITY</div>", unsafe_allow_html=True)
     qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
     
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Action
-    offer_id = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button(f"Activate {qty} Packages", type="primary"):
+    if st.button(f"ACTIVATE ({qty})", type="primary"):
+        offer = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
         clean_trg = target.replace(" ", "").replace("+30", "")[-10:]
         
-        # Clean Progress UI
-        box = st.empty()
         bar = st.progress(0)
         s, l, f = 0, 0, 0
         
         for i in range(qty):
-            c = activate(st.session_state.token, clean_trg, offer_id)
-            if c in [200, 201]: s += 1
-            elif c == 403: l += 1
+            code = activate(st.session_state.token, clean_trg, offer)
+            if code in [200, 201]: s += 1
+            elif code == 403: l += 1
             else: f += 1
             bar.progress((i+1)/qty)
             time.sleep(0.05)
             
-        box.empty()
         bar.empty()
         
-        # Simple Results
+        # Simple Stats
         cols = st.columns(3)
-        cols[0].metric("Success", s)
-        cols[1].metric("Limits", l)
-        cols[2].metric("Errors", f)
+        cols[0].metric("✅", s)
+        cols[1].metric("⚠️", l)
+        cols[2].metric("❌", f)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Sign Out", type="secondary"):
+    if st.button("LOGOUT", type="secondary"):
         st.session_state.clear()
         st.rerun()
