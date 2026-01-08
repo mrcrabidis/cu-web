@@ -9,7 +9,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 st.set_page_config(
     page_title="CU", 
     page_icon="🔴", 
-    layout="centered", # Αυτό είναι σημαντικό
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
@@ -19,7 +19,7 @@ AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- CSS (PERFECT CENTERING FIX) ---
+# --- CSS (RESPONSIVE FIX) ---
 st.markdown("""
 <style>
     /* 1. BACKGROUND */
@@ -31,25 +31,28 @@ st.markdown("""
     /* 2. REMOVE HEADER/FOOTER */
     #MainMenu, footer, header {visibility: hidden;}
 
-    /* 3. CENTER THE MAIN CONTAINER (THE FIX) */
+    /* 3. CENTER & WIDTH FIX (SAFE FOR MOBILE) */
     div.block-container {
-        max-width: 380px !important; /* Πλάτος iPhone */
-        padding-top: 10vh !important; /* Κενό από πάνω για να μην είναι ταβάνι */
-        padding-bottom: 5rem !important;
-        margin-left: auto !important;  /* Αναγκαστικό κεντράρισμα */
-        margin-right: auto !important; /* Αναγκαστικό κεντράρισμα */
-        display: block !important;
+        width: 100% !important;
+        max-width: 90% !important; /* Πιάνει το 90% της οθόνης, άρα αφήνει κενό */
+        padding-top: 5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 
     /* 4. INPUT FIELDS */
     .stTextInput > div > div > input {
         background-color: #1C1C1E !important;
         color: white !important;
-        border: 1px solid #333 !important; /* Λεπτό border για να φαίνεται */
+        border: 1px solid #333 !important;
         border-radius: 12px !important;
         height: 55px !important;
-        padding-left: 20px !important;
+        padding-left: 15px !important;
         font-size: 16px !important;
+        box-sizing: border-box !important; /* Σημαντικό για να μην εξέχει */
     }
     .stTextInput > div > div > input:focus {
         border-color: #E60000 !important;
@@ -66,11 +69,8 @@ st.markdown("""
         font-weight: 600 !important;
         font-size: 18px !important;
         border: none !important;
-        margin-top: 15px;
-        transition: transform 0.1s;
-    }
-    .stButton > button:active {
-        transform: scale(0.98);
+        margin-top: 10px;
+        box-sizing: border-box !important;
     }
     
     /* Secondary Button */
@@ -84,9 +84,9 @@ st.markdown("""
     h1 {
         text-align: center;
         font-weight: 800;
-        font-size: 32px;
+        font-size: 28px;
         color: white;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         padding: 0;
     }
     
@@ -94,19 +94,24 @@ st.markdown("""
         color: #8E8E93;
         font-size: 12px;
         font-weight: 600;
-        margin-bottom: 8px;
-        margin-left: 4px;
+        margin-bottom: 5px;
+        margin-left: 2px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
-    /* SELECT & SLIDER FIXES */
+    /* Select Box Styling */
     .stSelectbox > div > div {
         background-color: #1C1C1E !important;
         color: white !important;
         border: 1px solid #333 !important;
         border-radius: 12px !important;
         height: 55px !important;
+    }
+    
+    /* Center the internal content */
+    div[data-testid="stVerticalBlock"] {
+        align-items: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -163,13 +168,13 @@ if st.session_state.step == 'login':
                 st.session_state.phone = phone
                 st.session_state.step = 'otp'
                 st.rerun()
-            else: st.error("Connection Failed")
-        else: st.warning("Invalid Number")
+            else: st.error("Failed")
+        else: st.warning("Check Number")
 
 # >>>> OTP <<<<
 elif st.session_state.step == 'otp':
     st.markdown("<h1>VERIFY</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center; color:#666; font-size:14px; margin-top:-20px;'>SMS sent to {st.session_state.phone}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; color:#666; font-size:14px; margin-top:-15px;'>{st.session_state.phone}</p>", unsafe_allow_html=True)
     
     st.markdown("<div class='label'>SMS CODE</div>", unsafe_allow_html=True)
     otp = st.text_input("OTP", type="password", placeholder="••••", label_visibility="collapsed")
