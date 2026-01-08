@@ -4,11 +4,11 @@ import base64
 import time
 import urllib3
 
-# --- 1. SETUP ---
+# --- 1. SETUP & CONFIG ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 st.set_page_config(
-    page_title="CU Glass",
-    page_icon="💎",
+    page_title="CU",
+    page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -19,106 +19,107 @@ AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- 3. iOS GLASSMORPHISM CSS ---
+# --- 3. HIGH-END MOBILE CSS ---
 st.markdown("""
 <style>
-    /* 1. BACKGROUND: Deep Abstract Gradient to show off the glass effect */
+    /* RESET & BACKGROUND */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, rgb(30, 0, 0) 0%, rgb(10, 10, 15) 40%, rgb(0, 0, 0) 90%);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #000000; /* True Black for OLED */
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Hide Streamlit Elements */
+    /* CENTER LAYOUT LIKE A MOBILE APP */
+    .block-container {
+        max_width: 380px !important; /* Force Mobile Width */
+        padding-top: 3rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin: 0 auto !important; /* Perfect Center */
+    }
+
+    /* REMOVE CLUTTER */
     #MainMenu, footer, header {visibility: hidden;}
     
-    /* 2. THE GLASS CARD CONTAINER */
-    .glass-container {
-        background: rgba(255, 255, 255, 0.05); /* Ultra low opacity white */
-        backdrop-filter: blur(20px);            /* Heavy Blur */
-        -webkit-backdrop-filter: blur(20px);    /* Safari Support */
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 30px 20px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-        margin-bottom: 25px;
-    }
-
-    /* 3. INPUT FIELDS (Glassy Look) */
+    /* INPUT FIELDS (iOS Style) */
     .stTextInput > div > div > input {
-        background-color: rgba(0, 0, 0, 0.3) !important;
+        background-color: #1c1c1e !important; /* iOS Dark Gray */
         color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 15px !important;
-        height: 55px !important;
-        font-size: 18px !important;
+        border: none !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+        font-size: 17px !important;
         padding-left: 15px !important;
-        transition: all 0.3s ease;
     }
     .stTextInput > div > div > input:focus {
-        border-color: #ff3b30 !important; /* iOS Red */
-        background-color: rgba(0, 0, 0, 0.5) !important;
-        box-shadow: 0 0 15px rgba(255, 59, 48, 0.3);
-    }
-
-    /* 4. BUTTONS (iOS Style) */
-    .stButton > button {
-        width: 100%;
-        border-radius: 16px;
-        height: 55px !important;
-        font-weight: 600;
-        font-size: 17px !important;
-        border: none;
-        backdrop-filter: blur(10px);
-        transition: transform 0.2s;
+        background-color: #2c2c2e !important;
     }
     
-    /* Primary Button: Vibrant Gradient */
+    /* SELECT & SLIDER */
+    .stSelectbox > div > div {
+        background-color: #1c1c1e !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+    }
+
+    /* BUTTONS */
+    .stButton > button {
+        width: 100%;
+        border-radius: 12px !important;
+        height: 52px !important;
+        font-weight: 600 !important;
+        font-size: 17px !important;
+        border: none !important;
+        transition: opacity 0.2s;
+    }
+    
+    /* Primary (Red) */
     button[kind="primary"] {
-        background: linear-gradient(135deg, #ff3b30 0%, #d70015 100%) !important;
-        box-shadow: 0 4px 15px rgba(215, 0, 21, 0.4);
+        background-color: #E60000 !important;
         color: white !important;
     }
     button[kind="primary"]:active {
-        transform: scale(0.97);
+        opacity: 0.7;
     }
 
-    /* Secondary Button: Frosted Glass */
+    /* Secondary (Gray) */
     button[kind="secondary"] {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: #ffffff !important;
+        background-color: #1c1c1e !important;
+        color: #E60000 !important; /* Red Text */
     }
 
-    /* 5. TYPOGRAPHY & TITLES */
-    h1, h2, h3 {
-        font-weight: 700 !important;
-        letter-spacing: -0.5px;
-        color: white;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    /* CUSTOM CARDS */
+    .ios-group {
+        background-color: #1c1c1e;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
     }
     
-    .subtitle {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
+    .label-header {
+        color: #8e8e93;
+        font-size: 13px;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        margin-left: 15px;
         margin-bottom: 8px;
-        font-weight: 600;
-    }
-
-    /* 6. SELECT BOX & SLIDER */
-    .stSelectbox > div > div {
-        background-color: rgba(0, 0, 0, 0.3);
-        color: white;
-        border-radius: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        height: 50px;
+        margin-top: 10px;
+        font-weight: 500;
     }
     
+    h1 {
+        font-weight: 700;
+        font-size: 28px;
+        text-align: center;
+        padding-bottom: 20px;
+        margin: 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. LOGIC (Unchanged) ---
+# --- 4. LOGIC ---
 def get_session():
     s = requests.Session()
     s.verify = False
@@ -127,154 +128,129 @@ def get_session():
 def request_otp(phone):
     s = get_session()
     headers = {"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"}
-    try:
-        res = s.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data={"login_hint": f"+30{phone}", "response_type": "code"})
-        return res.status_code in [200, 202]
+    try: return s.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data={"login_hint": f"+30{phone}", "response_type": "code"}).status_code in [200, 202]
     except: return False
 
 def verify_otp(phone, otp):
     s = get_session()
     headers = {"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "*/*"}
-    raw = f"30{phone}:{otp}"
-    enc = base64.b64encode(raw.encode()).decode()
     try:
-        res = s.post(f"{AUTH_OTP_URL}/token", headers=headers, data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": enc})
+        res = s.post(f"{AUTH_OTP_URL}/token", headers=headers, data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": base64.b64encode(f"30{phone}:{otp}".encode()).decode()})
         return res.json().get("access_token") if res.status_code == 200 else None
     except: return None
 
 def activate(token, target, offer):
     s = get_session()
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT}
-    payload = {"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]}
-    try: return s.post(ORDER_URL, headers=headers, json=payload).status_code
+    try: return s.post(ORDER_URL, headers=headers, json={"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]}).status_code
     except: return 0
 
-# --- 5. UI LAYOUT ---
+# --- 5. UI FLOW ---
 
 if 'step' not in st.session_state: st.session_state.step = 'login'
 if 'phone' not in st.session_state: st.session_state.phone = ""
 if 'token' not in st.session_state: st.session_state.token = None
 
-# >>>> SCREEN 1: LOGIN <<<<
+# >>>> LOGIN <<<<
 if st.session_state.step == 'login':
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1>CU</h1>", unsafe_allow_html=True)
     
-    # Glass Card Start
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
-    
-    st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>CU LOGIN</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: rgba(255,255,255,0.5); font-size: 14px;'>Premium Tool</p>", unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    st.markdown('<p class="subtitle">MOBILE NUMBER</p>', unsafe_allow_html=True)
-    phone = st.text_input("Mobile", placeholder="69...", label_visibility="collapsed")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.button("Get Code", type="primary"):
+    st.markdown("<div class='label-header'>SIGN IN</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
+    phone = st.text_input("Mobile Number", placeholder="69xxxxxxxx", label_visibility="collapsed")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.button("Continue", type="primary"):
         if len(phone) == 10:
-            with st.spinner("Connecting..."):
-                if request_otp(phone):
-                    st.session_state.phone = phone
-                    st.session_state.step = 'otp'
-                    st.rerun()
-                else: st.toast("Failed", icon="❌")
-        else: st.toast("Invalid Format", icon="⚠️")
-        
-    st.markdown('</div>', unsafe_allow_html=True) # End Glass
-
-# >>>> SCREEN 2: OTP <<<<
-elif st.session_state.step == 'otp':
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
-    
-    st.markdown("<h2 style='text-align: center;'>Verify</h2>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: rgba(255,255,255,0.7);'>Sent to {st.session_state.phone}</p>", unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    st.markdown('<p class="subtitle">SMS CODE</p>', unsafe_allow_html=True)
-    otp = st.text_input("OTP", type="password", placeholder="••••", label_visibility="collapsed")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        if st.button("Back", type="secondary"):
-            st.session_state.step = 'login'
-            st.rerun()
-    with col2:
-        if st.button("Enter", type="primary"):
-            token = verify_otp(st.session_state.phone, otp)
-            if token:
-                st.session_state.token = token
-                st.session_state.step = 'app'
+            if request_otp(phone):
+                st.session_state.phone = phone
+                st.session_state.step = 'otp'
                 st.rerun()
-            else: st.toast("Wrong OTP", icon="⛔")
-            
-    st.markdown('</div>', unsafe_allow_html=True)
+            else: st.error("Connection Failed")
+        else: st.warning("Check Number")
 
-# >>>> SCREEN 3: DASHBOARD <<<<
+# >>>> OTP <<<<
+elif st.session_state.step == 'otp':
+    st.markdown("<h1>Verify</h1>", unsafe_allow_html=True)
+    st.caption(f"Code sent to {st.session_state.phone}")
+    
+    st.markdown("<div class='label-header'>SMS CODE</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
+    otp = st.text_input("Code", type="password", placeholder="••••", label_visibility="collapsed")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.button("Login", type="primary"):
+        token = verify_otp(st.session_state.phone, otp)
+        if token:
+            st.session_state.token = token
+            st.session_state.step = 'app'
+            st.rerun()
+        else: st.error("Invalid Code")
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Back", type="secondary"):
+        st.session_state.step = 'login'
+        st.rerun()
+
+# >>>> DASHBOARD <<<<
 elif st.session_state.step == 'app':
     
-    # Header Info
+    # Status Header
     st.markdown(f"""
-    <div style='display: flex; align-items: center; justify-content: space-between; padding: 10px 10px;'>
-        <h2 style='margin:0;'>Control</h2>
-        <div style='background: rgba(255,59,48,0.2); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,59,48,0.4);'>
-            <span style='color: #ff3b30; font-weight: bold; font-size: 14px;'>● {st.session_state.phone}</span>
-        </div>
+    <div style='text-align:center; padding-bottom:20px;'>
+        <div style='font-size:32px; font-weight:700;'>{st.session_state.phone}</div>
+        <div style='color:#4CD964; font-size:14px; font-weight:600;'>● Active</div>
     </div>
     """, unsafe_allow_html=True)
+
+    # Settings Group
+    st.markdown("<div class='label-header'>CONFIGURATION</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ios-group'>", unsafe_allow_html=True)
     
-    # MAIN GLASS CARD
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
-    
-    st.markdown('<p class="subtitle">TARGET NUMBER</p>', unsafe_allow_html=True)
+    st.caption("Target Number")
     target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True) # Spacer
     
-    st.markdown('<p class="subtitle">PACKAGE TYPE</p>', unsafe_allow_html=True)
-    ptype = st.selectbox("Type", ["🥤 CU Shake (Data)", "📞 Voice Bonus"], label_visibility="collapsed")
+    st.caption("Package")
+    ptype = st.selectbox("Type", ["CU Shake (Data)", "Voice Bonus"], label_visibility="collapsed")
+    
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True) # Spacer
+    
+    st.caption("Quantity")
+    qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Action
     offer_id = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    st.markdown('<p class="subtitle">QUANTITY</p>', unsafe_allow_html=True)
-    qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    if st.button(f"Activate ({qty})", type="primary"):
+    if st.button(f"Activate {qty} Packages", type="primary"):
         clean_trg = target.replace(" ", "").replace("+30", "")[-10:]
         
-        status_text = st.empty()
+        # Clean Progress UI
+        box = st.empty()
         bar = st.progress(0)
-        
         s, l, f = 0, 0, 0
+        
         for i in range(qty):
             c = activate(st.session_state.token, clean_trg, offer_id)
             if c in [200, 201]: s += 1
             elif c == 403: l += 1
             else: f += 1
+            bar.progress((i+1)/qty)
+            time.sleep(0.05)
             
-            bar.progress((i + 1) / qty)
-            status_text.markdown(f"<p style='color:white; text-align:center;'>Processing {i+1} / {qty}...</p>", unsafe_allow_html=True)
-            time.sleep(0.1)
-            
-        status_text.empty()
+        box.empty()
         bar.empty()
         
-        # Results Display
-        if s > 0: st.markdown(f"<div style='background:rgba(50,205,50,0.2); padding:10px; border-radius:10px; text-align:center; margin-bottom:5px; border:1px solid rgba(50,205,50,0.4);'>✅ Success: {s}</div>", unsafe_allow_html=True)
-        if l > 0: st.markdown(f"<div style='background:rgba(255,204,0,0.2); padding:10px; border-radius:10px; text-align:center; margin-bottom:5px; border:1px solid rgba(255,204,0,0.4);'>⚠️ Limit: {l}</div>", unsafe_allow_html=True)
-        if f > 0: st.markdown(f"<div style='background:rgba(255,59,48,0.2); padding:10px; border-radius:10px; text-align:center; border:1px solid rgba(255,59,48,0.4);'>❌ Error: {f}</div>", unsafe_allow_html=True)
+        # Simple Results
+        cols = st.columns(3)
+        cols[0].metric("Success", s)
+        cols[1].metric("Limits", l)
+        cols[2].metric("Errors", f)
 
-    st.markdown('</div>', unsafe_allow_html=True) # End Glass
-    
-    if st.button("Log Out", type="secondary"):
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Sign Out", type="secondary"):
         st.session_state.clear()
         st.rerun()
