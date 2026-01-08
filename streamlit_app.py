@@ -4,137 +4,111 @@ import base64
 import time
 import urllib3
 
-# --- CONFIGURATION ---
+# --- 1. CONFIGURATION ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 st.set_page_config(
-    page_title="CU Boost Portal",
-    page_icon="🔒",
+    page_title="CU Mobile",
+    page_icon="📱",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# --- CONSTANTS ---
+# --- 2. CONSTANTS ---
 BASE_URL = "https://eu3.api.vodafone.com"
 AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- CUSTOM CSS (MINIMALISTIC & PROFESSIONAL) ---
+# --- 3. MOBILE CSS (IPHONE OPTIMIZED) ---
 st.markdown("""
 <style>
-    /* Γενικό Στυλ & Φόντο */
+    /* Reset & Dark Mode Base */
     .stApp {
-        background: linear-gradient(180deg, #121212 0%, #1E1E1E 100%);
-        color: #E0E0E0;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    /* Εξαφάνιση των Streamlit στοιχείων */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-
-    /* Κύριος Τίτλος */
-    .main-title {
-        text-align: center;
-        font-size: 2.2em;
-        font-weight: 600;
-        margin-bottom: 30px;
-        color: #FFFFFF;
-        letter-spacing: 1px;
-    }
-
-    /* Κάρτες (Minimal) */
-    .css-card {
-        background-color: #1E1E1E;
-        border-radius: 12px;
-        border: 1px solid #333333;
-        padding: 40px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-        margin-bottom: 20px;
-        text-align: center;
+        background-color: #000000;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif; /* San Francisco Font */
     }
     
-    /* Subheaders */
-    .css-card h3 {
-        font-weight: 500;
-        color: #FFFFFF;
-        margin-bottom: 15px;
-    }
-    .css-card p {
-        color: #AAAAAA;
-        font-size: 15px;
+    /* Hide Streamlit Bloat */
+    #MainMenu, footer, header {visibility: hidden;}
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 5rem !important;
+        max-width: 100%;
     }
 
-    /* Inputs */
+    /* INPUTS: Big & Tappable */
     .stTextInput > div > div > input {
-        background-color: #2C2C2C;
-        color: #E0E0E0;
-        border-radius: 8px;
-        height: 45px;
-        font-size: 16px;
-        border: 1px solid #444444;
-        padding: 0 15px;
-        transition: border-color 0.2s ease;
+        background-color: #1c1c1e; /* iOS Dark Gray */
+        color: white;
+        border: none;
+        border-radius: 12px;
+        height: 60px !important;
+        font-size: 20px !important;
+        padding-left: 20px;
+        text-align: center;
     }
     .stTextInput > div > div > input:focus {
-        border-color: #E60000;
-        box-shadow: none;
-        background-color: #333333;
+        box-shadow: 0 0 0 2px #E60000; /* Red Focus */
     }
 
-    /* Buttons */
+    /* BUTTONS: Full Width & Actionable */
     .stButton > button {
         width: 100%;
-        border-radius: 8px;
+        border-radius: 14px;
+        height: 60px !important;
+        font-weight: 600;
+        font-size: 18px !important;
+        border: none;
+        margin-top: 10px;
+    }
+
+    /* Primary Button (Action) */
+    button[kind="primary"] {
+        background-color: #E60000 !important; /* Vodafone Red */
+        color: white !important;
+    }
+    
+    /* Secondary Button (Navigation) */
+    button[kind="secondary"] {
+        background-color: #2c2c2e !important;
+        color: #98989d !important;
+    }
+
+    /* SLIDER & SELECTBOX */
+    .stSelectbox > div > div {
+        background-color: #1c1c1e;
+        color: white;
+        border-radius: 12px;
         height: 50px;
-        font-weight: 500;
-        font-size: 16px;
-        transition: all 0.2s ease;
-        box-shadow: none;
-        text-transform: none;
-        border: 1px solid transparent;
+        border: none;
     }
-
-    /* Primary Button (Vodafone Red, Minimal) */
-    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="primary"] {
-        background-color: #E60000;
-        color: #FFFFFF;
-    }
-    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="primary"]:hover {
-        background-color: #C40000;
-        border-color: #C40000;
-    }
-
-    /* Secondary Button (Outline) */
-    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="secondary"] {
-        background-color: transparent;
-        border: 1px solid #555555;
-        color: #E0E0E0;
-    }
-    div[data-testid="stVerticalBlock"] > div > div > div > div > button[kind="secondary"]:hover {
-        border-color: #E60000;
+    
+    /* RESULTS METRICS */
+    div[data-testid="stMetricValue"] {
+        font-size: 24px;
         color: #E60000;
     }
-
-    /* Metrics & Status */
-    div[data-testid="stMetricValue"] {
-        font-size: 28px;
+    
+    /* CUSTOM CARD LIKE iOS WIDGET */
+    .ios-card {
+        background-color: #1c1c1e;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .label-text {
+        color: #8e8e93;
+        font-size: 13px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
         font-weight: 600;
-        color: #FFFFFF;
-    }
-    .stStatus {
-        background: #2C2C2C !important;
-        border-radius: 10px !important;
-        border: 1px solid #444444 !important;
-    }
-    .stStatus p {
-        color: #E0E0E0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIC FUNCTIONS (ΙΔΙΕΣ ΜΕ ΠΡΙΝ) ---
+# --- 4. LOGIC ---
 def get_session():
     s = requests.Session()
     s.verify = False
@@ -149,12 +123,10 @@ def request_otp(phone):
         "User-Agent": USER_AGENT,
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    data = {"login_hint": f"+30{phone}", "response_type": "code"}
     try:
-        res = s.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data=data)
+        res = s.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data={"login_hint": f"+30{phone}", "response_type": "code"})
         return res.status_code in [200, 202]
-    except:
-        return False
+    except: return False
 
 def verify_otp(phone, otp):
     s = get_session()
@@ -166,183 +138,122 @@ def verify_otp(phone, otp):
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "*/*"
     }
-    raw_auth = f"30{phone}:{otp}"
-    encoded_auth = base64.b64encode(raw_auth.encode()).decode()
-    data = {"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": encoded_auth}
+    raw = f"30{phone}:{otp}"
+    enc = base64.b64encode(raw.encode()).decode()
     try:
-        res = s.post(f"{AUTH_OTP_URL}/token", headers=headers, data=data)
-        if res.status_code == 200:
-            return res.json().get("access_token")
-        return None
-    except:
-        return None
+        res = s.post(f"{AUTH_OTP_URL}/token", headers=headers, data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": enc})
+        return res.json().get("access_token") if res.status_code == 200 else None
+    except: return None
 
-def activate_package(token, target_msisdn, offering_id):
+def activate(token, target, offer):
     s = get_session()
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": USER_AGENT,
-        "Authorization": f"Bearer {token}",
-        "api-key-name": "CUAPP",
-        "vf-country-code": "GR"
-    }
-    payload = {
-        "productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offering_id}}],
-        "relatedParty": [{"role": "subscriber", "id": target_msisdn}]
-    }
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT}
+    payload = {"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]}
     try:
-        response = s.post(ORDER_URL, headers=headers, json=payload)
-        return response.status_code
-    except:
-        return 0
+        return s.post(ORDER_URL, headers=headers, json=payload).status_code
+    except: return 0
 
-# --- APP FLOW ---
+# --- 5. UI FLOW ---
 
-if 'step' not in st.session_state: st.session_state.step = 'login_phone'
+if 'step' not in st.session_state: st.session_state.step = 'login'
 if 'phone' not in st.session_state: st.session_state.phone = ""
 if 'token' not in st.session_state: st.session_state.token = None
 
-# Header Logo area
-st.markdown("<h1 class='main-title'>CU Boost Portal</h1>", unsafe_allow_html=True)
-
-# 1. LOGIN SCREEN
-if st.session_state.step == 'login_phone':
-    # Κεντράρισμα της κάρτας
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-        st.subheader("Welcome Back")
-        st.write("Please sign in to continue.")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        phone_input = st.text_input("Mobile Number", placeholder="", label_visibility="collapsed")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        if st.button("Send SMS Code", type="primary"):
-            if len(phone_input) == 10:
-                with st.spinner("Connecting..."):
-                    if request_otp(phone_input):
-                        st.session_state.phone = phone_input
-                        st.session_state.step = 'login_otp'
-                        st.rerun()
-                    else:
-                        st.toast("Failed to send SMS", icon="⚠️")
-            else:
-                st.toast("Please enter a valid 10-digit number.", icon="ℹ️")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# 2. OTP SCREEN
-elif st.session_state.step == 'login_otp':
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-        st.subheader("Verification")
-        st.write(f"Enter the code sent to **{st.session_state.phone}**")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        otp_input = st.text_input("OTP Code", type="password", placeholder="", label_visibility="collapsed")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        c1, c2 = st.columns([1, 1.5])
-        with c1:
-            if st.button("Back", kind="secondary"):
-                st.session_state.step = 'login_phone'
-                st.rerun()
-        with c2:
-            if st.button("Sign In", type="primary"):
-                with st.spinner("Verifying..."):
-                    token = verify_otp(st.session_state.phone, otp_input)
-                    if token:
-                        st.session_state.token = token
-                        st.session_state.step = 'dashboard'
-                        st.rerun()
-                    else:
-                        st.toast("Invalid OTP Code", icon="⛔")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# 3. DASHBOARD
-elif st.session_state.step == 'dashboard':
+# >>>> SCREEN 1: LOGIN <<<<
+if st.session_state.step == 'login':
+    st.markdown("<h2 style='text-align: center; color: white; margin-bottom: 30px;'>CU LOGIN</h2>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 4, 1])
-    with col2:
-        # User Info Card
-        st.markdown(f"""
-        <div class='css-card' style='padding: 25px; text-align: left; display: flex; justify-content: space-between; align-items: center;'>
-            <div>
-                <span style='font-size: 13px; color: #AAAAAA; letter-spacing: 0.5px;'>ACCOUNT</span><br>
-                <span style='font-size: 20px; font-weight: 600; color: #FFFFFF;'>{st.session_state.phone}</span>
-            </div>
-            <div style='font-size: 24px; color: #E60000;'>●</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("<div class='label-text'>MOBILE NUMBER</div>", unsafe_allow_html=True)
+    phone = st.text_input("Mobile", placeholder="69...", label_visibility="collapsed")
+    
+    st.write("") # Spacer
+    
+    if st.button("GET CODE", type="primary"):
+        if len(phone) == 10:
+            with st.spinner(""):
+                if request_otp(phone):
+                    st.session_state.phone = phone
+                    st.session_state.step = 'otp'
+                    st.rerun()
+                else: st.toast("Failed", icon="❌")
+        else: st.toast("Check number", icon="⚠️")
 
-        # Control Card
-        st.markdown("<div class='css-card' style='text-align: left;'>", unsafe_allow_html=True)
-        st.subheader("Boost Controls")
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.write("**Target Number**")
-        target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed", placeholder="Enter Target Number")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.write("**Select Package**")
-        option = st.selectbox("Offer", 
-                              ["CU Shake (BDLCUShakeBon7)", "Voice Bonus (BDLBonVoice3)"],
-                              label_visibility="collapsed")
-        
-        offering_id = "BDLCUShakeBon7" if "Shake" in option else "BDLBonVoice3"
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.write("**Quantity**")
-        count = st.slider("Quantity", 1, 50, 1, label_visibility="collapsed")
-        
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        
-        if st.button("Activate Now", type="primary"):
-            clean_target = target.replace(" ", "").replace("+30", "")[-10:]
+# >>>> SCREEN 2: OTP <<<<
+elif st.session_state.step == 'otp':
+    st.markdown(f"<h3 style='text-align: center; margin-bottom: 20px;'>Verify {st.session_state.phone}</h3>", unsafe_allow_html=True)
+    
+    st.markdown("<div class='label-text'>SMS CODE</div>", unsafe_allow_html=True)
+    otp = st.text_input("OTP", type="password", placeholder="1234", label_visibility="collapsed")
+    
+    st.write("") # Spacer
+    
+    if st.button("LOGIN", type="primary"):
+        with st.spinner(""):
+            tk = verify_otp(st.session_state.phone, otp)
+            if tk:
+                st.session_state.token = tk
+                st.session_state.step = 'app'
+                st.rerun()
+            else: st.toast("Wrong Code", icon="⛔")
             
-            # Modern Status Container
-            with st.status("Processing...", expanded=True) as status:
-                success, limits, fails = 0, 0, 0
-                
-                my_bar = st.progress(0)
-                
-                for i in range(count):
-                    resp_code = activate_package(st.session_state.token, clean_target, offering_id)
-                    
-                    if resp_code in [200, 201]:
-                        success += 1
-                        status.write(f"Hit {i+1}: Success")
-                    elif resp_code == 403:
-                        limits += 1
-                        status.write(f"Hit {i+1}: Limit Reached")
-                    else:
-                        fails += 1
-                        status.write(f"Hit {i+1}: Error {resp_code}")
-                    
-                    my_bar.progress((i + 1) / count)
-                    time.sleep(0.15)
-                
-                status.update(label="Complete", state="complete", expanded=False)
-            
-            # Results Metrics
-            st.markdown("<br>", unsafe_allow_html=True)
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Success", success)
-            m2.metric("Limits", limits)
-            m3.metric("Errors", fails)
-            
-            if success > 0:
-                st.toast(f"Activated {success} packages.", icon="✅")
+    if st.button("Back", type="secondary"):
+        st.session_state.step = 'login'
+        st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+# >>>> SCREEN 3: APP <<<<
+elif st.session_state.step == 'app':
+    # Status Bar
+    st.markdown(f"""
+    <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px; background: #1c1c1e; border-radius: 12px;'>
+        <span style='color: #8e8e93; font-size: 14px;'>CONNECTED</span>
+        <span style='color: white; font-weight: bold;'>{st.session_state.phone}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Main Controls in a Card
+    st.markdown("<div class='ios-card'>", unsafe_allow_html=True)
+    
+    st.markdown("<div class='label-text'>TARGET NUMBER</div>", unsafe_allow_html=True)
+    target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
+    
+    st.markdown("<br><div class='label-text'>PACKAGE</div>", unsafe_allow_html=True)
+    ptype = st.selectbox("Type", ["🥤 Shake (Data)", "📞 Voice (Bonus)"], label_visibility="collapsed")
+    offer_id = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
+    
+    st.markdown("<br><div class='label-text'>QUANTITY</div>", unsafe_allow_html=True)
+    qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
+    
+    st.markdown("</div>", unsafe_allow_html=True) # End Card
+
+    # ACTION BUTTON
+    if st.button(f"ACTIVATE ({qty})", type="primary"):
+        clean_trg = target.replace(" ", "").replace("+30", "")[-10:]
         
-        if st.button("Logout", kind="secondary"):
-            st.session_state.clear()
-            st.rerun()
+        # Minimal Status
+        status_box = st.empty()
+        bar = st.progress(0)
+        
+        s, l, f = 0, 0, 0
+        for i in range(qty):
+            c = activate(st.session_state.token, clean_trg, offer_id)
+            if c in [200, 201]: s += 1
+            elif c == 403: l += 1
+            else: f += 1
+            
+            bar.progress((i + 1) / qty)
+            status_box.caption(f"Processing... {i+1}/{qty}")
+            time.sleep(0.1)
+            
+        status_box.empty()
+        bar.empty()
+        
+        # Results
+        if s > 0: st.success(f"✅ Success: {s}")
+        if l > 0: st.warning(f"⚠️ Limits: {l}")
+        if f > 0: st.error(f"❌ Errors: {f}")
+
+    # Spacer at bottom
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("Logout", type="secondary"):
+        st.session_state.clear()
+        st.rerun()
