@@ -6,7 +6,12 @@ import urllib3
 
 # --- SETUP ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-st.set_page_config(page_title="CU", page_icon="🔴", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="CU", 
+    page_icon="🔴", 
+    layout="centered", # Αυτό είναι σημαντικό
+    initial_sidebar_state="collapsed"
+)
 
 # --- CONSTANTS ---
 BASE_URL = "https://eu3.api.vodafone.com"
@@ -14,7 +19,7 @@ AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-# --- CSS (CLEAN & FLAT) ---
+# --- CSS (PERFECT CENTERING FIX) ---
 st.markdown("""
 <style>
     /* 1. BACKGROUND */
@@ -23,83 +28,85 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* 2. REMOVE STREAMLIT PADDING/HEADER */
+    /* 2. REMOVE HEADER/FOOTER */
     #MainMenu, footer, header {visibility: hidden;}
-    .block-container {
-        padding-top: 3rem !important;
-        max-width: 400px !important; /* Mobile Width Only */
-        margin: auto;
+
+    /* 3. CENTER THE MAIN CONTAINER (THE FIX) */
+    div.block-container {
+        max-width: 380px !important; /* Πλάτος iPhone */
+        padding-top: 10vh !important; /* Κενό από πάνω για να μην είναι ταβάνι */
+        padding-bottom: 5rem !important;
+        margin-left: auto !important;  /* Αναγκαστικό κεντράρισμα */
+        margin-right: auto !important; /* Αναγκαστικό κεντράρισμα */
+        display: block !important;
     }
 
-    /* 3. INPUT FIELD STYLING (The Box) */
-    /* Αυτό φτιάχνει το input να είναι το ΜΟΝΑΔΙΚΟ κουτί */
+    /* 4. INPUT FIELDS */
     .stTextInput > div > div > input {
-        background-color: #1C1C1E !important; /* Dark Gray */
+        background-color: #1C1C1E !important;
         color: white !important;
-        border: none !important;
+        border: 1px solid #333 !important; /* Λεπτό border για να φαίνεται */
         border-radius: 12px !important;
         height: 55px !important;
         padding-left: 20px !important;
-        font-size: 18px !important;
+        font-size: 16px !important;
     }
-    
-    /* Όταν πατάς κλικ να μην βγάζει κόκκινο περίγραμμα, απλά να φωτίζει λίγο */
     .stTextInput > div > div > input:focus {
-        background-color: #2C2C2E !important;
-        color: white !important;
+        border-color: #E60000 !important;
+        background-color: #252525 !important;
     }
 
-    /* 4. BUTTON STYLING */
+    /* 5. BUTTONS */
     .stButton > button {
         width: 100%;
         border-radius: 12px !important;
         height: 55px !important;
-        background-color: #E60000 !important; /* Vodafone Red */
+        background-color: #E60000 !important;
         color: white !important;
         font-weight: 600 !important;
         font-size: 18px !important;
         border: none !important;
-        margin-top: 10px;
+        margin-top: 15px;
+        transition: transform 0.1s;
     }
     .stButton > button:active {
-        opacity: 0.7;
+        transform: scale(0.98);
     }
     
-    /* Secondary Button (Gray) */
+    /* Secondary Button */
     button[kind="secondary"] {
         background-color: transparent !important;
-        color: #666 !important;
-        border: 1px solid #333 !important;
+        border: 1px solid #444 !important;
+        color: #888 !important;
     }
 
-    /* 5. TEXT LABELS */
+    /* 6. TYPOGRAPHY */
+    h1 {
+        text-align: center;
+        font-weight: 800;
+        font-size: 32px;
+        color: white;
+        margin-bottom: 30px;
+        padding: 0;
+    }
+    
     .label {
-        color: #888;
-        font-size: 13px;
-        text-transform: uppercase;
+        color: #8E8E93;
+        font-size: 12px;
         font-weight: 600;
         margin-bottom: 8px;
-        margin-left: 5px;
+        margin-left: 4px;
+        text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
-    h1 {
-        color: white; 
-        font-weight: 800; 
-        text-align: center; 
-        margin-bottom: 30px;
-        font-size: 30px;
-    }
-    
-    /* Select Box Styling to match */
+    /* SELECT & SLIDER FIXES */
     .stSelectbox > div > div {
         background-color: #1C1C1E !important;
         color: white !important;
-        border: none !important;
+        border: 1px solid #333 !important;
         border-radius: 12px !important;
         height: 55px !important;
-        display: flex;
-        align-items: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -138,19 +145,19 @@ def activate(token, target, offer):
         return res.status_code
     except: return 0
 
-# --- UI LOGIC ---
+# --- APP FLOW ---
 if 'step' not in st.session_state: st.session_state.step = 'login'
 if 'phone' not in st.session_state: st.session_state.phone = ""
 if 'token' not in st.session_state: st.session_state.token = None
 
-# > SCREEN 1: LOGIN
+# >>>> LOGIN <<<<
 if st.session_state.step == 'login':
-    st.markdown("<h1>CU LOGIN</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>CU</h1>", unsafe_allow_html=True)
     
     st.markdown("<div class='label'>MOBILE NUMBER</div>", unsafe_allow_html=True)
     phone = st.text_input("Mobile", placeholder="69...", label_visibility="collapsed")
     
-    if st.button("GET CODE", type="primary"):
+    if st.button("CONTINUE", type="primary"):
         if len(phone) == 10:
             if request_otp(phone):
                 st.session_state.phone = phone
@@ -159,13 +166,12 @@ if st.session_state.step == 'login':
             else: st.error("Connection Failed")
         else: st.warning("Invalid Number")
 
-# > SCREEN 2: OTP
+# >>>> OTP <<<<
 elif st.session_state.step == 'otp':
     st.markdown("<h1>VERIFY</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; color:#666; font-size:14px; margin-top:-20px;'>SMS sent to {st.session_state.phone}</p>", unsafe_allow_html=True)
     
-    st.markdown(f"<div style='text-align:center; color:#666; margin-bottom:20px;'>SMS sent to {st.session_state.phone}</div>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>ENTER CODE</div>", unsafe_allow_html=True)
+    st.markdown("<div class='label'>SMS CODE</div>", unsafe_allow_html=True)
     otp = st.text_input("OTP", type="password", placeholder="••••", label_visibility="collapsed")
     
     if st.button("LOGIN", type="primary"):
@@ -175,30 +181,30 @@ elif st.session_state.step == 'otp':
             st.session_state.step = 'dashboard'
             st.rerun()
         else: st.error("Invalid Code")
-        
+    
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Go Back", type="secondary"):
+    if st.button("BACK", type="secondary"):
         st.session_state.step = 'login'
         st.rerun()
 
-# > SCREEN 3: DASHBOARD
+# >>>> DASHBOARD <<<<
 elif st.session_state.step == 'dashboard':
     st.markdown(f"<h1>{st.session_state.phone}</h1>", unsafe_allow_html=True)
     
     st.markdown("<div class='label'>TARGET NUMBER</div>", unsafe_allow_html=True)
     target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
+
     st.markdown("<div class='label'>PACKAGE</div>", unsafe_allow_html=True)
     ptype = st.selectbox("Type", ["🥤 CU Shake (Data)", "📞 Voice Bonus"], label_visibility="collapsed")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
+
     st.markdown("<div class='label'>QUANTITY</div>", unsafe_allow_html=True)
     qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     
     if st.button(f"ACTIVATE ({qty})", type="primary"):
         offer = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
@@ -217,11 +223,10 @@ elif st.session_state.step == 'dashboard':
             
         bar.empty()
         
-        # Simple Stats
         cols = st.columns(3)
-        cols[0].metric("✅", s)
-        cols[1].metric("⚠️", l)
-        cols[2].metric("❌", f)
+        cols[0].metric("Success", s)
+        cols[1].metric("Limits", l)
+        cols[2].metric("Error", f)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("LOGOUT", type="secondary"):
