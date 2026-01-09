@@ -3,213 +3,239 @@ import requests
 import base64
 import time
 import urllib3
+import pyotp  # Βιβλιοθήκη για Google Authenticator (TOTP)
 
-# --- 1. SETUP ---
+# Απενεργοποίηση warnings για SSL (λόγω verify=False)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-st.set_page_config(
-    page_title="CU", 
-    page_icon="🔴", 
-    layout="wide",  # Χρησιμοποιούμε όλο το πλάτος
-    initial_sidebar_state="collapsed"
-)
 
-# --- 2. THE LOGIC ---
+# --- ΡΥΘΜΙΣΕΙΣ ΧΡΗΣΤΗ ΕΦΑΡΜΟΓΗΣ (CREDENTIALS) ---
+# Σε πραγματική εφαρμογή, αυτά θα ήταν σε βάση δεδομένων ή environment variables.
+# Για το παράδειγμα, τα ορίζουμε εδώ:
+APP_USERNAME = "admin"
+APP_PASSWORD = "password123"
+# Το Secret Key για το Google Authenticator (Base32 format).
+# Μπορείς να δημιουργήσεις ένα νέο secret τρέχοντας: pyotp.random_base32()
+APP_2FA_SECRET = "JBSWY3DPEHPK3PXP" 
+
+# --- ΡΥΘΜΙΣΕΙΣ API VODAFONE ---
 BASE_URL = "https://eu3.api.vodafone.com"
 AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
-def get_session():
-    s = requests.Session()
-    s.verify = False
-    return s
+# --- ΣΥΝΑΡΤΗΣΕΙΣ ΛΟΓΙΚΗΣ ---
 
-def request_otp(phone):
+def verify_app_login(username, password, otp_code):
+    """Ελέγχει τα credentials και το 2FA για είσοδο στο App."""
+    if username == APP_USERNAME and password == APP_PASSWORD:
+        totp = pyotp.TOTP(APP_2FA_SECRET)
+        if totp.verify(otp_code):
+            return True
+    return False
+
+def send_vodafone_sms(phone):
+    """Στέλνει το SMS για login στο Vodafone CU."""
+    headers = {
+        "Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==",
+        "api-key-name": "CUAPP",
+        "vf-country-code": "GR",
+        "User-Agent": USER_AGENT,
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {"login_hint": f"+30{phone}", "response_type": "code"}
+    
     try:
-        s = get_session()
-        res = s.post(f"{AUTH_OTP_URL}/authorize", headers={"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"}, data={"login_hint": f"+30{phone}", "response_type": "code"})
+        res = requests.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data=data, verify=False)
         return res.status_code in [200, 202]
-    except: return False
+    except Exception as e:
+        st.error(f"Network Error: {e}")
+        return False
 
-def verify_otp(phone, otp):
+def verify_vodafone_otp(phone, otp):
+    """Κάνει verify το OTP της Vodafone και επιστρέφει το Token."""
+    headers = {
+        "Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==",
+        "api-key-name": "CUAPP",
+        "vf-country-code": "GR",
+        "User-Agent": USER_AGENT,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*"
+    }
+    raw_auth = f"30{phone}:{otp}"
+    encoded_auth = base64.b64encode(raw_auth.encode()).decode()
+    data = {"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": encoded_auth}
+    
     try:
-        s = get_session()
-        code = base64.b64encode(f"30{phone}:{otp}".encode()).decode()
-        res = s.post(f"{AUTH_OTP_URL}/token", headers={"Authorization": "Basic RTBqanJibnB3em9KUkxJZFRpYzZBOWJZMzU1Yzh5QlI6RGczaUFVWUVHSXFCVHB1Tw==", "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded", "Accept": "*/*"}, data={"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": code})
-        return res.json().get("access_token") if res.status_code == 200 else None
-    except: return None
+        res = requests.post(f"{AUTH_OTP_URL}/token", headers=headers, data=data, verify=False)
+        if res.status_code == 200:
+            return res.json().get("access_token")
+        return None
+    except Exception:
+        return None
 
-def activate(token, target, offer):
+def activate_package(token, target_msisdn, offering_id):
+    """Ενεργοποιεί το πακέτο."""
+    headers = {
+        "Host": "eu3.api.vodafone.com",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+        "Connection": "keep-alive",
+        "Accept": "application/json",        
+        "Accept-Language": "en",
+        "Authorization": f"Bearer {token}",
+        "api-key-name": "CUAPP",             
+        "vf-country-code": "GR"
+    }
+    
+    payload = {
+        "productOrderItem": [{
+            "action": "adhoc", 
+            "quantity": 1, 
+            "productOffering": {"id": offering_id}
+        }],
+        "relatedParty": [{"role": "subscriber", "id": target_msisdn}]
+    }
+    
     try:
-        s = get_session()
-        res = s.post(ORDER_URL, headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}", "api-key-name": "CUAPP", "vf-country-code": "GR", "User-Agent": USER_AGENT}, json={"productOrderItem": [{"action": "adhoc", "quantity": 1, "productOffering": {"id": offer}}], "relatedParty": [{"role": "subscriber", "id": target}]})
-        return res.status_code
-    except: return 0
+        response = requests.post(ORDER_URL, headers=headers, json=payload, verify=False)
+        return response.status_code
+    except Exception as e:
+        return str(e)
 
-# --- 3. THE "NATIVE APP" CSS ---
-st.markdown("""
-<style>
-    /* Full Black Background */
-    .stApp {
-        background-color: #000000;
-        font-family: -apple-system, Helvetica, sans-serif;
-    }
+# --- STREAMLIT UI ---
 
-    /* REMOVE ALL DEFAULT PADDING */
-    .block-container {
-        padding-top: 3rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 1.5rem !important;  /* Κενό αριστερά */
-        padding-right: 1.5rem !important; /* Κενό δεξιά */
-        max-width: 100% !important;
-    }
+st.set_page_config(page_title="CU Bot Panel", page_icon="🔴", layout="centered")
 
-    /* HIDE JUNK */
-    #MainMenu, footer, header {display: none !important;}
+# Διαχείριση Session State
+if 'app_logged_in' not in st.session_state:
+    st.session_state['app_logged_in'] = False
+if 'vf_token' not in st.session_state:
+    st.session_state['vf_token'] = None
+if 'vf_phone' not in st.session_state:
+    st.session_state['vf_phone'] = None
+if 'sms_sent' not in st.session_state:
+    st.session_state['sms_sent'] = False
 
-    /* INPUTS: Full Width, No Borders, Native Look */
-    .stTextInput > div > div > input {
-        background-color: #1C1C1E !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        height: 55px !important;
-        font-size: 17px !important;
-        padding-left: 20px !important;
-    }
-    .stTextInput > div > div > input:focus {
-        background-color: #2C2C2E !important; /* Lighter on focus */
-    }
-
-    /* SELECT BOX */
-    .stSelectbox > div > div {
-        background-color: #1C1C1E !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        height: 55px !important;
-    }
-
-    /* BUTTONS: Big, Red, Bottom */
-    .stButton > button {
-        width: 100%;
-        border-radius: 12px !important;
-        height: 55px !important;
-        background-color: #E60000 !important;
-        color: white !important;
-        font-weight: 700 !important;
-        font-size: 18px !important;
-        border: none !important;
-        margin-top: 20px;
-    }
+# --- ΦΑΣΗ 1: LOGIN ΣΤΗΝ ΕΦΑΡΜΟΓΗ ---
+if not st.session_state['app_logged_in']:
+    st.title("🔐 Secure Login")
     
-    /* Secondary Button (Logout/Back) */
-    button[kind="secondary"] {
-        background-color: transparent !important;
-        color: #666 !important;
-        margin-top: 0px;
-    }
-
-    /* TYPOGRAPHY */
-    h1 {
-        text-align: center;
-        color: white;
-        font-weight: 800;
-        margin-bottom: 40px;
-        font-size: 28px;
-    }
-    
-    /* Labels small and uppercase */
-    .label {
-        font-size: 12px;
-        color: #888;
-        font-weight: 600;
-        margin-bottom: 8px;
-        margin-left: 5px;
-        text-transform: uppercase;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# --- 4. APP FLOW ---
-if 'step' not in st.session_state: st.session_state.step = 'login'
-if 'phone' not in st.session_state: st.session_state.phone = ""
-if 'token' not in st.session_state: st.session_state.token = None
-
-# >>>> 1. LOGIN SCREEN <<<<
-if st.session_state.step == 'login':
-    st.markdown("<h1>CU</h1>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>MOBILE NUMBER</div>", unsafe_allow_html=True)
-    phone = st.text_input("Mobile", placeholder="69...", label_visibility="collapsed")
-    
-    if st.button("CONTINUE", type="primary"):
-        if len(phone) == 10:
-            if request_otp(phone):
-                st.session_state.phone = phone
-                st.session_state.step = 'otp'
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        otp_code = st.text_input("Google Authenticator Code", max_chars=6)
+        
+        submit = st.form_submit_button("Είσοδος")
+        
+        if submit:
+            if verify_app_login(username, password, otp_code):
+                st.session_state['app_logged_in'] = True
+                st.success("Επιτυχής σύνδεση!")
                 st.rerun()
-            else: st.error("Error connecting")
-        else: st.warning("Invalid number")
+            else:
+                st.error("Λάθος στοιχεία ή κωδικός 2FA.")
+    
+    # Βοηθητικό για να σετάρεις το Google Auth πρώτη φορά (σβήσε το σε production)
+    with st.expander("Setup Google Auth (Demo info)"):
+        st.write(f"Secret Key: `{APP_2FA_SECRET}`")
+        st.write("Σκάναρε αυτό στο Google Authenticator app ή βάλε το κλειδί χειροκίνητα.")
+        st.write(f"Demo User: `{APP_USERNAME}` / Pass: `{APP_PASSWORD}`")
 
-# >>>> 2. OTP SCREEN <<<<
-elif st.session_state.step == 'otp':
-    st.markdown("<h1>VERIFY</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center; color:#555; margin-top:-30px; margin-bottom:30px;'>{st.session_state.phone}</p>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>SMS CODE</div>", unsafe_allow_html=True)
-    otp = st.text_input("OTP", type="password", placeholder="••••", label_visibility="collapsed")
-    
-    if st.button("LOGIN", type="primary"):
-        token = verify_otp(st.session_state.phone, otp)
-        if token:
-            st.session_state.token = token
-            st.session_state.step = 'dash'
-            st.rerun()
-        else: st.error("Invalid Code")
-    
-    if st.button("Back", type="secondary"):
-        st.session_state.step = 'login'
-        st.rerun()
-
-# >>>> 3. DASHBOARD SCREEN <<<<
-elif st.session_state.step == 'dash':
-    st.markdown(f"<h2 style='text-align:center; color:white; margin-bottom:40px;'>{st.session_state.phone}</h2>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>TARGET</div>", unsafe_allow_html=True)
-    target = st.text_input("Target", value=st.session_state.phone, label_visibility="collapsed")
-    
-    st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>PACKAGE</div>", unsafe_allow_html=True)
-    ptype = st.selectbox("Type", ["🥤 CU Shake (Data)", "📞 Voice Bonus"], label_visibility="collapsed")
-    
-    st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='label'>QUANTITY</div>", unsafe_allow_html=True)
-    qty = st.slider("Qty", 1, 50, 1, label_visibility="collapsed")
-    
-    if st.button("ACTIVATE", type="primary"):
-        offer = "BDLCUShakeBon7" if "Shake" in ptype else "BDLBonVoice3"
-        clean = target.replace(" ", "").replace("+30", "")[-10:]
-        
-        bar = st.progress(0)
-        s, l, f = 0, 0, 0
-        for i in range(qty):
-            c = activate(st.session_state.token, clean, offer)
-            if c in [200,201]: s+=1
-            elif c==403: l+=1
-            else: f+=1
-            bar.progress((i+1)/qty)
-            time.sleep(0.05)
-        bar.empty()
-        
-        # Minimal Results
-        c1, c2, c3 = st.columns(3)
-        c1.metric("OK", s)
-        c2.metric("Limit", l)
-        c3.metric("Err", f)
-
-    if st.button("LOGOUT", type="secondary"):
+# --- ΦΑΣΗ 2: ΚΥΡΙΑ ΕΦΑΡΜΟΓΗ ---
+else:
+    st.sidebar.title("Μενού")
+    if st.sidebar.button("🚪 Έξοδος (Logout)"):
         st.session_state.clear()
         st.rerun()
+
+    st.title("🔴 CU Vodafone Bot Control")
+
+    # --- ΥΠΟ-ΦΑΣΗ 2Α: ΣΥΝΔΕΣΗ ΜΕ VODAFONE ---
+    if not st.session_state['vf_token']:
+        st.header("1. Σύνδεση στο CU")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            phone_input = st.text_input("Αριθμός Κινητού (χωρίς +30)", value=st.session_state.get('vf_phone', '') or '')
+        
+        if st.button("📨 Αποστολή SMS") and phone_input:
+            with st.spinner("Αποστολή..."):
+                if send_vodafone_sms(phone_input):
+                    st.session_state['sms_sent'] = True
+                    st.session_state['vf_phone'] = phone_input
+                    st.success(f"Το SMS στάλθηκε στο {phone_input}")
+                else:
+                    st.error("Αποτυχία αποστολής SMS.")
+
+        if st.session_state['sms_sent']:
+            otp_input = st.text_input("Κωδικός OTP (από SMS)")
+            if st.button("✅ Επαλήθευση OTP"):
+                with st.spinner("Έλεγχος..."):
+                    token = verify_vodafone_otp(st.session_state['vf_phone'], otp_input)
+                    if token:
+                        st.session_state['vf_token'] = token
+                        st.success("Συνδέθηκες επιτυχώς!")
+                        st.rerun()
+                    else:
+                        st.error("Λάθος OTP ή σφάλμα σύνδεσης.")
+
+    # --- ΥΠΟ-ΦΑΣΗ 2Β: CONTROL PANEL ---
+    else:
+        st.success(f"Συνδεδεμένος ως: {st.session_state['vf_phone']}")
+        
+        st.divider()
+        st.header("🚀 Ενέργειες")
+        
+        # Επιλογή Στόχου
+        target_phone = st.text_input("Στόχος (Target MSISDN)", value=st.session_state['vf_phone'])
+        
+        # Επιλογή Πακέτου
+        pkg_choice = st.selectbox("Επίλεξε Πακέτο", [
+            "🥤 CU Shake (BDLCUShakeBon7)",
+            "📞 Voice Bonus (BDLBonVoice3)"
+        ])
+        
+        if "Shake" in pkg_choice:
+            offering_id = "BDLCUShakeBon7"
+        else:
+            offering_id = "BDLBonVoice3"
+            
+        # Επιλογή Επαναλήψεων
+        loops = st.number_input("Πλήθος Επαναλήψεων", min_value=1, max_value=100, value=1)
+        
+        if st.button("🔥 ΕΝΑΡΞΗ"):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            success_count = 0
+            fail_count = 0
+            limit_count = 0
+            
+            results_area = st.container()
+            
+            for i in range(loops):
+                status_text.text(f"Εκτέλεση {i+1}/{loops}...")
+                code = activate_package(st.session_state['vf_token'], target_phone, offering_id)
+                
+                if code in [200, 201]:
+                    success_count += 1
+                elif code == 403:
+                    limit_count += 1
+                else:
+                    fail_count += 1
+                
+                # Update progress
+                progress_bar.progress((i + 1) / loops)
+                time.sleep(0.2) # Μικρή καθυστέρηση για να μην φάμε ban ακαριαία
+            
+            status_text.text("Ολοκληρώθηκε!")
+            
+            # Εμφάνιση αποτελεσμάτων
+            with results_area:
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Επιτυχίες", success_count)
+                c2.metric("Limits (403)", limit_count)
+                c3.metric("Σφάλματα", fail_count)
+            
+            if success_count > 0:
+                st.balloons()
